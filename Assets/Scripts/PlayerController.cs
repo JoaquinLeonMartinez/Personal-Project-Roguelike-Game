@@ -166,11 +166,11 @@ public class PlayerController : MonoBehaviour
         {
             if (playerState != State.Melee1)
             {
-                StartCoroutine(Attack()); //Melee1
+                StartCoroutine(Attack1()); //Melee1
             }
             else if (playerState == State.Melee1)
             {
-                //StartCoroutine(Attack()); //Melee2
+                //StartCoroutine(Attack2()); //Melee2
             }
             else if (playerState == State.Melee2)
             {
@@ -180,7 +180,7 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    IEnumerator Attack()
+    IEnumerator Attack1()
     {
         playerState = State.Melee1;
         anim.SetBool("Attack", true);
@@ -190,6 +190,20 @@ public class PlayerController : MonoBehaviour
         yield return new WaitForSeconds(attackCoolDown);
         playerState = State.None;
     }
+
+    /*
+    IEnumerator Attack2() // esto deberia cortar el melee1
+    {
+        playerState = State.Melee2;
+        anim.SetBool("Attack2", true);
+        anim.SetBool("Attack", false);
+        yield return new WaitForSeconds(attackDuration);
+        anim.SetBool("Attack2", false);
+        playerState = State.Cooldown;
+        yield return new WaitForSeconds(attackCoolDown);
+        playerState = State.None;
+    }*/
+
 
     float GetModifiedSmoothTime(float smoothTime)
     {
