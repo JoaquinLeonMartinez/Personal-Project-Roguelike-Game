@@ -54,6 +54,8 @@ public class PlayerController : MonoBehaviour
     [SerializeField]
     private State playerState = State.None;
 
+    private MeleeAttack[] meleeAttacks;
+
     //Dash
     [SerializeField]
     private float dashSpeed = 12;
@@ -111,16 +113,21 @@ public class PlayerController : MonoBehaviour
         }
         //Debug.Log($"attack duration = {attackDuration}");
 
+        meleeAttacks = new MeleeAttack[3];
+        meleeAttacks[0] = new MeleeAttack(State.Melee1, "Melee1", attackDuration);
+        meleeAttacks[1] = new MeleeAttack(State.Melee2, "Melee2", attackDuration);
+        meleeAttacks[2] = new MeleeAttack(State.Melee3, "Melee3", attackDuration);
+
     }
 
     void Update()
     {
+        if (playerState == State.None)
+        {
+            Movement();
+        }
         if (playerState != State.Dash)
         {
-            if (playerState != State.Melee1)
-            {
-                Movement();
-            }
             if (playerState != State.Cooldown)
             {
                 MeleeAtack();
@@ -178,26 +185,26 @@ public class PlayerController : MonoBehaviour
         {
             if (playerState != State.Melee1)
             {
-                StartCoroutine(Attack1()); //Melee1
+                StartCoroutine(Attack1(meleeAttacks[0])); //Melee1
             }
             else if (playerState == State.Melee1)
             {
-                //StartCoroutine(Attack2()); //Melee2
+                StartCoroutine(Attack1(meleeAttacks[1])); //Melee2
             }
             else if (playerState == State.Melee2)
             {
-                //StartCoroutine(Attack()); //Melee3
+                StartCoroutine(Attack1(meleeAttacks[2])); //Melee3
             }
             
         }
     }
 
-    IEnumerator Attack1()
+    IEnumerator Attack1(MeleeAttack meleeAttack)
     {
-        playerState = State.Melee1;
-        anim.SetBool("Attack", true);
+        playerState = meleeAttack.playerState;
+        anim.SetBool(meleeAttack.transitionCondition, true);
         yield return new WaitForSeconds(attackDuration); 
-        anim.SetBool("Attack", false);
+        anim.SetBool(meleeAttack.transitionCondition, false);
         playerState = State.Cooldown;
         yield return new WaitForSeconds(attackCoolDown);
         playerState = State.None;
@@ -206,18 +213,6 @@ public class PlayerController : MonoBehaviour
     //Para combos:
     //https://www.youtube.com/watch?v=TLVbrtZ_nKk&ab_channel=ChardiTronic
 
-    /*
-    IEnumerator Attack2() // esto deberia cortar el melee1
-    {
-        playerState = State.Melee2;
-        anim.SetBool("Attack2", true);
-        anim.SetBool("Attack", false);
-        yield return new WaitForSeconds(attackDuration);
-        anim.SetBool("Attack2", false);
-        playerState = State.Cooldown;
-        yield return new WaitForSeconds(attackCoolDown);
-        playerState = State.None;
-    }*/
 
 
     float GetModifiedSmoothTime(float smoothTime)
