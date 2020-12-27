@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public enum State { None, Melee1, Melee2, Melee3, Cooldown };
+public enum State { None, Melee1, Melee2, Melee3, Cooldown, Dash };
 
 public class PlayerController : MonoBehaviour
 {
@@ -54,8 +54,17 @@ public class PlayerController : MonoBehaviour
     [SerializeField]
     private State playerState = State.None;
 
+    //Dash
+    [SerializeField]
+    private float dashSpeed = 12;
+    [SerializeField]
+    private float dashDuration = 2f;
+
+    //Inputs
     [SerializeField]
     private KeyCode attackButton = KeyCode.E;
+    [SerializeField]
+    private KeyCode dashButton = KeyCode.Q;
 
     void Start()
     {
@@ -95,8 +104,8 @@ public class PlayerController : MonoBehaviour
             //Debug.Log($"- {clip.name} : {clip.length}");
             switch (clip.name)
             {
-                case "Melee360":
-                    attackDuration = clip.length / 2.5f; // TODO: hacer que este vlaor lo coja del animator
+                case "Melee360SinRecoil":
+                    attackDuration = clip.length / 2.5f; // TODO: hacer que este valor lo coja del animator
                     break;
             }
         }
@@ -106,15 +115,18 @@ public class PlayerController : MonoBehaviour
 
     void Update()
     {
-        if (playerState != State.Melee1)
+        if (playerState != State.Dash)
         {
-            Movement();
+            if (playerState != State.Melee1)
+            {
+                Movement();
+            }
+            if (playerState != State.Cooldown)
+            {
+                MeleeAtack();
+            }
+            DashCheck();
         }
-        if (playerState != State.Cooldown)
-        {
-            MeleeAtack();
-        }
-        
 
     }
 
@@ -191,6 +203,9 @@ public class PlayerController : MonoBehaviour
         playerState = State.None;
     }
 
+    //Para combos:
+    //https://www.youtube.com/watch?v=TLVbrtZ_nKk&ab_channel=ChardiTronic
+
     /*
     IEnumerator Attack2() // esto deberia cortar el melee1
     {
@@ -213,5 +228,29 @@ public class PlayerController : MonoBehaviour
         }
 
         return smoothTime;
+    }
+
+    public void DashCheck()
+    {
+        //https://www.youtube.com/watch?v=vTNWUbGkZ58&ab_channel=VubiGameDev
+        if (Input.GetKeyDown(dashButton))
+        {
+            StartCoroutine(Dash());
+        }
+        
+    }
+
+    IEnumerator Dash()
+    {
+        float startTime = Time.time;
+        //State lastState = playerState;
+        playerState = State.Dash;
+        while (Time.time < startTime + dashDuration)
+        {
+            controller.Move(this.transform.forward * dashSpeed * Time.deltaTime);
+            yield return null;
+        }
+        playerState = State.None;
+
     }
 }
