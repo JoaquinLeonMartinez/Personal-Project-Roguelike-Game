@@ -122,9 +122,10 @@ public class PlayerController : MonoBehaviour
 
     void Update()
     {
-        if (playerState == State.None)
+        if (playerState == State.None || playerState == State.Cooldown)
         {
             Movement();
+            DashCheck();
         }
         if (playerState != State.Dash)
         {
@@ -132,7 +133,7 @@ public class PlayerController : MonoBehaviour
             {
                 MeleeAtack();
             }
-            DashCheck();
+            
         }
 
     }
