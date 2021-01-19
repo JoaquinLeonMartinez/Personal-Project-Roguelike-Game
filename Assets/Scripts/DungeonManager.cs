@@ -27,18 +27,18 @@ public class DungeonManager : MonoBehaviour
 
     //Distancia entre centros de salas
     public static float distance = 4.5f;
+    public static float distanceP = 3.25f;
 
     // Array de salas predefinidas
     public List<GameObject> predefinedRooms = new List<GameObject>();
 
-    List<Door> posibleDoors = new List<Door>();
-    
+    // Nº de salas
+    public int roomsToGenerate = 2;
+
+
     void Start()
     {
-        posibleDoors.Add(Door.Right);
-        posibleDoors.Add(Door.Down);
-        posibleDoors.Add(Door.Left);
-        posibleDoors.Add(Door.Up);
+        SetPredefinedRooms();
 
         GenerateDungeon();
     }
@@ -50,67 +50,90 @@ public class DungeonManager : MonoBehaviour
 
     public void GenerateDungeon()
     {
-        // Necesitamos:
-        // Nº de salas
-        int roomsToGenerate = 3; //TODO: Esto debe leerse del menu
-
 
         //La primera sala no puede ser del tipo P, que es el ultimo en el array, de modo que generamos un random hasta el .count - 1
         //La generamos en el (0,0,0)
         var currentRoom = predefinedRooms[Random.Range(0, predefinedRooms.Count - 1)];
-        Instantiate(currentRoom, new Vector3(0, 0, 0), currentRoom.transform.rotation);
+        currentRoom = Instantiate(currentRoom, new Vector3(0, 0, 0), currentRoom.transform.rotation);
+        //currentRoom.GetComponent<Room>().SetDoors();
         roomsToGenerate--;
+        Debug.Log($"Acabamos de generar la primera room (tipo {currentRoom.GetComponent<Room>().type.ToString()})");
 
         //Ahora generamos el resto de rooms
-        for (int i = 0; i < roomsToGenerate; i++)
+        while(roomsToGenerate > 0)
         {
+            Debug.Log($"Quedan {roomsToGenerate} por generar");
             // Antes de nada necesitamos saber que salas son compatibles con cada puerta
-            //Si nuestra room tiene puerta derecha
-            for (int j = 0; j < posibleDoors.Count; j++)
+            Debug.Log($"La room actual tiene {currentRoom.GetComponent<Room>().doors.Count} puertas");
+
+            for (int j = 0; j < currentRoom.GetComponent<Room>().doors.Count; j++)
             {
-                if (DoorExists(currentRoom.GetComponent<Room>().type, posibleDoors[j]))
+                if (roomsToGenerate == 0)
                 {
-                    //TODO
-                    //En caso de llegar aqui buscamos una habitación compatible
-                    //Comprobar tambien cuantas quedan por generar
+                    GameObject roomToInstantiate = predefinedRooms[predefinedRooms.Count - 1]; //Si no quedan rooms completamos las aperturas con rooms de tipo P
+                    Instantiate(roomToInstantiate, GeneratePosition(currentRoom.transform, currentRoom.GetComponent<Room>().doors[j], distanceP), roomToInstantiate.transform.rotation);
                 }
+                else
+                {
+                    Debug.Log($"Vamos a buscar rooms compatibles con la puerta {currentRoom.GetComponent<Room>().doors[j].ToString()}");
+                    List<GameObject> compatibleRooms = GetCompatibleRooms(currentRoom.GetComponent<Room>().doors[j]);
+                    //Debug.Log($"Hemos obtenido {compatibleRooms.Count} rooms compatibles.");
+                    if (compatibleRooms.Count != 0) //esto se va a dar siempre realmente
+                    {
+                        //Seleccionamos una de ellas de forma aleatoria
+                        GameObject roomToInstantiate = compatibleRooms[Random.Range(0, compatibleRooms.Count)];
+                        Instantiate(roomToInstantiate, GeneratePosition(currentRoom.transform, currentRoom.GetComponent<Room>().doors[j], distance), roomToInstantiate.transform.rotation);
+                        Debug.Log($"Hemos instanciado una room de tipo {roomToInstantiate.GetComponent<Room>().type.ToString()}");//, con una rotacion de {roomToInstantiate.transform.rotation.x}, {roomToInstantiate.transform.rotation.y}, {roomToInstantiate.transform.rotation.z}");
+                    }
+                }
+                roomsToGenerate--;
             }
-
-            //currentRoom = predefinedRooms[Random.Range(0, predefinedRooms.Count)];
-            //Instantiate(currentRoom, new Vector3(0, 0, 4.5f * i), currentRoom.transform.rotation);
         }
     }
 
-    //Devolverá una room compatible con una puerta de la room ya creada
-    public GameObject GetCompatibleRoom(Door door)
+    //Devolverá una lista de rooms compatibles con una puerta de la room ya creada
+    public List<GameObject> GetCompatibleRooms(Door door)
     {
-        //TODO
-        return predefinedRooms[0];
+        List<GameObject> compatibleRooms = new List<GameObject>();
+
+        for (int i = 0; i < predefinedRooms.Count; i++)
+        {
+            
+            if (predefinedRooms[i].GetComponent<Room>().IsCompatible(door))
+            {
+                //Debug.Log($"La room {predefinedRooms[i].GetComponent<Room>().type} es compatible");
+                compatibleRooms.Add(predefinedRooms[i]);
+            }
+        }
+
+        return compatibleRooms;
     }
 
-    //Indica si una room tiene una puerta en un lugar determinado
-    public bool DoorExists(RoomType roomType, Door door)
+    public void SetPredefinedRooms()
     {
-        if (door == Door.Right && (roomType == RoomType.A || roomType == RoomType.B || roomType == RoomType.C || roomType == RoomType.G || roomType == RoomType.F || roomType == RoomType.I || roomType == RoomType.K || roomType == RoomType.N))
+        foreach (var item in predefinedRooms)
         {
-            return true;
+            item.GetComponent<Room>().ClearDoors();
+            item.GetComponent<Room>().SetDoors();
+        }
+    }
+
+    public Vector3 GeneratePosition(Transform parentTransform, Door door, float distance)
+    {
+        Vector3 position = Vector3.zero;
+        switch (door)
+        {
+            case Door.Right:
+                return new Vector3(parentTransform.position.x, parentTransform.position.y, parentTransform.position.z + distance);
+            case Door.Down:
+                return new Vector3(parentTransform.position.x + distance, parentTransform.position.y, parentTransform.position.z);
+            case Door.Left:
+                return new Vector3(parentTransform.position.x, parentTransform.position.y, parentTransform.position.z - distance);
+            case Door.Up:
+                return new Vector3(parentTransform.position.x - distance, parentTransform.position.y, parentTransform.position.z);
         }
 
-        if (door == Door.Down && (roomType == RoomType.A || roomType == RoomType.B || roomType == RoomType.C || roomType == RoomType.D || roomType == RoomType.F || roomType == RoomType.G || roomType == RoomType.L || roomType == RoomType.O))
-        {
-            return true;
-        }
 
-        if (door == Door.Left && (roomType == RoomType.A || roomType == RoomType.C || roomType == RoomType.D || roomType == RoomType.E || roomType == RoomType.G || roomType == RoomType.H || roomType == RoomType.M || roomType == RoomType.N))
-        {
-            return true;
-        }
-
-        if (door == Door.Up && (roomType == RoomType.A || roomType == RoomType.B || roomType == RoomType.D || roomType == RoomType.E || roomType == RoomType.H || roomType == RoomType.I || roomType == RoomType.J || roomType == RoomType.O))
-        {
-            return true;
-        }
-
-        return false;
+        return position;
     }
 }

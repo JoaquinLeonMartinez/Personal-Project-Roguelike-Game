@@ -289,13 +289,13 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1559622389}
-  m_LocalRotation: {x: 0.7071068, y: 0, z: 0, w: 0.7071068}
+  m_LocalRotation: {x: 0.5, y: -0.5, z: 0.5, w: 0.5}
   m_LocalPosition: {x: 0, y: 20, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 0
-  m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 90, y: -90, z: 0}
 --- !u!1 &1919314048
 GameObject:
   m_ObjectHideFlags: 0
@@ -351,3 +351,4 @@ MonoBehaviour:
   - {fileID: 3489208924350936263, guid: ec06d6fa979b25b4c803bc991f6fca43, type: 3}
   - {fileID: 7820290484779537041, guid: bf1366c9d4bd2c947b647f522f1b7bda, type: 3}
   - {fileID: 4436502414507380025, guid: 8bf19721cf19c0d4e97d136598bf3d58, type: 3}
+  roomsToGenerate: 3
