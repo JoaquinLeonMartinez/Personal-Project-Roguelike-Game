@@ -59,7 +59,7 @@ public class Room : MonoBehaviour
         return false;
     }
 
-    public Door GetComplementaryDoor(Door door)
+    public static Door GetComplementaryDoor(Door door)
     {
         switch (door)
         {
@@ -79,6 +79,26 @@ public class Room : MonoBehaviour
     public void ClearDoors()
     {
         doors.Clear();
+    }
+
+    public void DisableDoor(Door door)
+    {
+        bool enc = false;
+        int i = 0;
+        for (i = 0; i < doors.Count && !enc; i++)
+        {
+            if (doors[i] == door)
+            {
+                enc = true;
+                break;
+            }
+        }
+
+        if (enc)
+        {
+            doors.RemoveAt(i);
+        }
+        
     }
 
     public void SetDoors()

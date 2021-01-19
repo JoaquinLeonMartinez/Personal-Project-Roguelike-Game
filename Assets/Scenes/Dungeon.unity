@@ -350,5 +350,5 @@ MonoBehaviour:
   - {fileID: 3100545190904748137, guid: 7bcab0dcc4bf021438e10adbf76ce87b, type: 3}
   - {fileID: 3489208924350936263, guid: ec06d6fa979b25b4c803bc991f6fca43, type: 3}
   - {fileID: 7820290484779537041, guid: bf1366c9d4bd2c947b647f522f1b7bda, type: 3}
-  - {fileID: 4436502414507380025, guid: 8bf19721cf19c0d4e97d136598bf3d58, type: 3}
-  roomsToGenerate: 3
+  - {fileID: 5307473185831344320, guid: 0707b77aa823f17439b0a8b5e7f025e0, type: 3}
+  roomsToGenerate: 6
