@@ -1,6 +1,8 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
+using TMPro;
 
 public class DungeonManager : MonoBehaviour
 {
@@ -34,13 +36,15 @@ public class DungeonManager : MonoBehaviour
 
     // Nº de salas
     public int roomsToGenerate = 2;
-
+    public TMP_InputField roomsToGenerateInput;
+    public GameObject dungeonContainer;
+    public List<GameObject> generatedRooms = new List<GameObject>();
 
     void Start()
     {
         SetPredefinedRooms();
 
-        GenerateDungeon();
+        //GenerateDungeon();
     }
 
     private void GenerateDungeon()
@@ -55,6 +59,7 @@ public class DungeonManager : MonoBehaviour
         GameObject lastRoom = null;
         var currentRoom = predefinedRooms[Random.Range(0, predefinedRooms.Count - 1)];
         currentRoom = Instantiate(currentRoom, new Vector3(0, 0, 0), currentRoom.transform.rotation);
+        currentRoom.transform.parent = dungeonContainer.transform;
         //currentRoom.GetComponent<Room>().SetDoors();
         roomsToGenerate--;
         Debug.Log($"Acabamos de generar la primera room (tipo {currentRoom.GetComponent<Room>().type.ToString()})");
@@ -74,7 +79,9 @@ public class DungeonManager : MonoBehaviour
                 firstRoomGenerated = true;
             }
 
-            for (int j = 0; j < currentRoom.GetComponent<Room>().doors.Count; j++)
+            bool finished = false;
+
+            for (int j = 0; j < currentRoom.GetComponent<Room>().doors.Count && !finished; j++)
             {
                 //Debug.Log($"Puertas posibles = {currentRoom.GetComponent<Room>().doors.Count}");
                 bool isWayBlocked = isBlocked(currentRoom, currentRoom.GetComponent<Room>().doors[j]);
@@ -88,17 +95,27 @@ public class DungeonManager : MonoBehaviour
                         currentRoom.GetComponent<Room>().ClearConnections();
                         //En la posicion de la que vamos a destruir, generamos una torre
                         GameObject roomToInstantiate = predefinedRooms[predefinedRooms.Count - 1];
-                        Instantiate(roomToInstantiate, GeneratePosition(currentRoom.transform, currentRoom.GetComponent<Room>().entryDoor, distance - distanceP), roomToInstantiate.transform.rotation);
+                        var endRoom = Instantiate(roomToInstantiate, GeneratePosition(currentRoom.transform, currentRoom.GetComponent<Room>().entryDoor, distance - distanceP), roomToInstantiate.transform.rotation);
+                        endRoom.transform.parent = dungeonContainer.transform;
+                        endRoom.GetComponent<Room>().SetParent(currentRoom.GetComponent<Room>().parent);//le decimos a la room quien es su padre
+                        currentRoom.GetComponent<Room>().parent.GetComponent<Room>().connections.Add(endRoom); //le decimos al padre que tiene un nuevo hijo
+                        Debug.Log($"Hemos borrado la room {currentRoom.GetComponent<Room>().type} y finalizamos");
                         //Destruimos la actual
                         Destroy(currentRoom);
-                        isClose = true; //acaba todo D:
+                        //salimos de este bucle, pero no del otro
+                        finished = true;
+                        isClose = true;
+
+
                     }
                     else //si el camino no esta bloqueado instanciamos una y listo
                     {
                         GameObject roomToInstantiate = predefinedRooms[predefinedRooms.Count - 1]; //Si no quedan rooms completamos las aperturas con rooms de tipo P
                         currentRoom.GetComponent<Room>().connections.Add(Instantiate(roomToInstantiate, GeneratePosition(currentRoom.transform, currentRoom.GetComponent<Room>().doors[j], distanceP), roomToInstantiate.transform.rotation));
+                        currentRoom.GetComponent<Room>().connections[currentRoom.GetComponent<Room>().connections.Count - 1].transform.parent = dungeonContainer.transform;
+                        currentRoom.GetComponent<Room>().connections[currentRoom.GetComponent<Room>().connections.Count - 1].GetComponent<Room>().SetParent(currentRoom);
+                        Debug.Log($"Hemos instanciado una room de tipo {roomToInstantiate.GetComponent<Room>().type.ToString()} con parent tipo {currentRoom.GetComponent<Room>().type} en la puerta {currentRoom.GetComponent<Room>().doors[j]}");
                     }
-
                 }
                 else
                 {
@@ -110,9 +127,10 @@ public class DungeonManager : MonoBehaviour
                         //Seleccionamos una de ellas de forma aleatoria
                         GameObject roomToInstantiate = compatibleRooms[Random.Range(0, compatibleRooms.Count)];
                         lastRoom = Instantiate(roomToInstantiate, GeneratePosition(currentRoom.transform, currentRoom.GetComponent<Room>().doors[j], distance), roomToInstantiate.transform.rotation);
-                        lastRoom.GetComponent<Room>().DisableDoor(Room.GetComplementaryDoor(currentRoom.GetComponent<Room>().doors[j]));
+                        lastRoom.transform.parent = dungeonContainer.transform;
+                        lastRoom.GetComponent<Room>().SetUp(currentRoom, Room.GetComplementaryDoor(currentRoom.GetComponent<Room>().doors[j]));
                         currentRoom.GetComponent<Room>().connections.Add(lastRoom);
-                        Debug.Log($"Hemos instanciado una room de tipo {roomToInstantiate.GetComponent<Room>().type.ToString()}");//, con una rotacion de {roomToInstantiate.transform.rotation.x}, {roomToInstantiate.transform.rotation.y}, {roomToInstantiate.transform.rotation.z}");
+                        Debug.Log($"Hemos instanciado una room de tipo {roomToInstantiate.GetComponent<Room>().type.ToString()} con parent tipo {currentRoom.GetComponent<Room>().type} en la puerta {currentRoom.GetComponent<Room>().doors[j]}");//, con una rotacion de {roomToInstantiate.transform.rotation.x}, {roomToInstantiate.transform.rotation.y}, {roomToInstantiate.transform.rotation.z}");
                         //Debug.Log($"Desactivamos la puerta {Room.GetComplementaryDoor(currentRoom.GetComponent<Room>().doors[j])} de la nueva room");
                         firstRoomGenerated = true;
                         roomsToGenerate--;
@@ -182,6 +200,18 @@ public class DungeonManager : MonoBehaviour
                 roomsToGenerate--;
             }
         }
+    }
+
+    public void OnClickGenerate()
+    {
+        if (!string.IsNullOrEmpty(roomsToGenerateInput.text))
+        {
+            roomsToGenerate = int.Parse(roomsToGenerateInput.text.ToString());
+        }
+
+        ResetDungeon();
+
+        GenerateDungeon();
     }
 
     //Devolverá una lista de rooms compatibles con una puerta de la room ya creada
@@ -291,4 +321,11 @@ public class DungeonManager : MonoBehaviour
         return Physics.Raycast(origin, (target3 - origin).normalized, out hit, maxDistance) || Physics.Raycast(origin, (target2 - origin).normalized, out hit, maxDistance) || Physics.Raycast(origin, (target1 - origin).normalized, out hit, maxDistance);
     }
 
+    public void ResetDungeon()
+    {
+        foreach (Transform child in dungeonContainer.transform)
+        {
+            GameObject.Destroy(child.gameObject);
+        }
+    }
 }

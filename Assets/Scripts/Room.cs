@@ -10,6 +10,7 @@ public class Room : MonoBehaviour
     public List<Door> doors = new List<Door>();
     public Door entryDoor;
     public List<GameObject> connections = new List<GameObject>();
+    public GameObject parent;
 
     //Compatible rooms
     //public GameObject roomPrefab;
@@ -91,6 +92,18 @@ public class Room : MonoBehaviour
         }
     }
 
+    public void SetUp(GameObject _parent, Door door)
+    {
+        SetParent(_parent);
+        entryDoor = door; //nos fiamos de que sea correcta
+        DisableDoor(door);
+    }
+
+    public void SetParent(GameObject _parent)
+    {
+        parent = _parent;
+    }
+
     public void DisableDoor(Door door)
     {
         bool enc = false;
@@ -100,7 +113,7 @@ public class Room : MonoBehaviour
             if (doors[i] == door)
             {
                 enc = true;
-                entryDoor = doors[i];
+                //entryDoor = doors[i];
                 break;
             }
         }
