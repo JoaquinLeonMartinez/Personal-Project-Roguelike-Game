@@ -8,6 +8,8 @@ public class Room : MonoBehaviour
 {
     public RoomType type;
     public List<Door> doors = new List<Door>();
+    public Door entryDoor;
+    public List<GameObject> connections = new List<GameObject>();
 
     //Compatible rooms
     //public GameObject roomPrefab;
@@ -81,6 +83,14 @@ public class Room : MonoBehaviour
         doors.Clear();
     }
 
+    public void ClearConnections()
+    {
+        foreach (var item in connections)
+        {
+            Destroy(item);
+        }
+    }
+
     public void DisableDoor(Door door)
     {
         bool enc = false;
@@ -90,6 +100,7 @@ public class Room : MonoBehaviour
             if (doors[i] == door)
             {
                 enc = true;
+                entryDoor = doors[i];
                 break;
             }
         }

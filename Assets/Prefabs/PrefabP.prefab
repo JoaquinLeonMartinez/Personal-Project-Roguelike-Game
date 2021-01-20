@@ -46,6 +46,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   type: 15
   doors: 
+  connections: []
 --- !u!1 &8374005690241611384
 GameObject:
   m_ObjectHideFlags: 0
@@ -57,6 +58,8 @@ GameObject:
   - component: {fileID: 8374005690241611381}
   - component: {fileID: 8374005690241611386}
   - component: {fileID: 8374005690241611387}
+  - component: {fileID: 5880048305245314710}
+  - component: {fileID: 4957580190451759436}
   m_Layer: 0
   m_Name: Tower
   m_TagString: Untagged
@@ -125,3 +128,32 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+--- !u!64 &5880048305245314710
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8374005690241611384}
+  m_Material: {fileID: 0}
+  m_IsTrigger: 0
+  m_Enabled: 1
+  serializedVersion: 4
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 4300000, guid: 68cbf13e667e309489732c1a030b28a9, type: 3}
+--- !u!114 &4957580190451759436
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8374005690241611384}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe0df2a79ec7eb341aab31b7d455f9c0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  type: 15
+  doors: 
+  connections: []

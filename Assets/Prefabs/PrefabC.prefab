@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 6340731113974079408}
   - component: {fileID: 6340731113972981104}
   - component: {fileID: 854328159704262329}
+  - component: {fileID: 4405031997166010424}
   m_Layer: 0
   m_Name: PrefabC
   m_TagString: Untagged
@@ -93,3 +94,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   type: 2
+  doors: 
+--- !u!64 &4405031997166010424
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6340731113971041200}
+  m_Material: {fileID: 0}
+  m_IsTrigger: 0
+  m_Enabled: 1
+  serializedVersion: 4
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 4300000, guid: 8b2f72e7b516c0d41804ae0b7704480e, type: 3}

@@ -62,26 +62,43 @@ public class DungeonManager : MonoBehaviour
         //Ahora generamos el resto de rooms
         while (!isClose)
         {
-            Debug.Log($"Quedan {roomsToGenerate} por generar");
+            //Debug.Log($"Quedan {roomsToGenerate} por generar");
             // Antes de nada necesitamos saber que salas son compatibles con cada puerta
             //Debug.Log($"La room actual tiene {currentRoom.GetComponent<Room>().doors.Count} puertas");
             bool firstRoomGenerated = false; //primera room conectada a otra
 
             if (roomsToGenerate == 0)//esto indica que este sera el ultimo loop y que solo generaremos p
             {
-                Debug.Log($"Ya no se generara nada que no sea de tipo P");
+                //Debug.Log($"Ya no se generara nada que no sea de tipo P");
                 isClose = true; //para cuando acabe el loop estara cerrado el circuito
                 firstRoomGenerated = true;
             }
 
             for (int j = 0; j < currentRoom.GetComponent<Room>().doors.Count; j++)
             {
-                Debug.Log($"Puertas posibles = {currentRoom.GetComponent<Room>().doors.Count}");
-                if (firstRoomGenerated)
+                //Debug.Log($"Puertas posibles = {currentRoom.GetComponent<Room>().doors.Count}");
+                bool isWayBlocked = isBlocked(currentRoom, currentRoom.GetComponent<Room>().doors[j]);
+                if (firstRoomGenerated || isWayBlocked)
                 {
                     //Las tipo P no cuentan como room, realmente no puedes entrar
-                    GameObject roomToInstantiate = predefinedRooms[predefinedRooms.Count - 1]; //Si no quedan rooms completamos las aperturas con rooms de tipo P
-                    Instantiate(roomToInstantiate, GeneratePosition(currentRoom.transform, currentRoom.GetComponent<Room>().doors[j], distanceP), roomToInstantiate.transform.rotation);
+                    if (isWayBlocked)
+                    {
+                        //En caso de estar bloqueado aqui acaba todo, destruimos la current y la sustituimos por una room P 
+                        //Antes de borrar la current room, habra que borrar todos sus hijos :')
+                        currentRoom.GetComponent<Room>().ClearConnections();
+                        //En la posicion de la que vamos a destruir, generamos una torre
+                        GameObject roomToInstantiate = predefinedRooms[predefinedRooms.Count - 1];
+                        Instantiate(roomToInstantiate, GeneratePosition(currentRoom.transform, currentRoom.GetComponent<Room>().entryDoor, distance - distanceP), roomToInstantiate.transform.rotation);
+                        //Destruimos la actual
+                        Destroy(currentRoom);
+                        isClose = true; //acaba todo D:
+                    }
+                    else //si el camino no esta bloqueado instanciamos una y listo
+                    {
+                        GameObject roomToInstantiate = predefinedRooms[predefinedRooms.Count - 1]; //Si no quedan rooms completamos las aperturas con rooms de tipo P
+                        currentRoom.GetComponent<Room>().connections.Add(Instantiate(roomToInstantiate, GeneratePosition(currentRoom.transform, currentRoom.GetComponent<Room>().doors[j], distanceP), roomToInstantiate.transform.rotation));
+                    }
+
                 }
                 else
                 {
@@ -94,6 +111,7 @@ public class DungeonManager : MonoBehaviour
                         GameObject roomToInstantiate = compatibleRooms[Random.Range(0, compatibleRooms.Count)];
                         lastRoom = Instantiate(roomToInstantiate, GeneratePosition(currentRoom.transform, currentRoom.GetComponent<Room>().doors[j], distance), roomToInstantiate.transform.rotation);
                         lastRoom.GetComponent<Room>().DisableDoor(Room.GetComplementaryDoor(currentRoom.GetComponent<Room>().doors[j]));
+                        currentRoom.GetComponent<Room>().connections.Add(lastRoom);
                         Debug.Log($"Hemos instanciado una room de tipo {roomToInstantiate.GetComponent<Room>().type.ToString()}");//, con una rotacion de {roomToInstantiate.transform.rotation.x}, {roomToInstantiate.transform.rotation.y}, {roomToInstantiate.transform.rotation.z}");
                         //Debug.Log($"Desactivamos la puerta {Room.GetComplementaryDoor(currentRoom.GetComponent<Room>().doors[j])} de la nueva room");
                         firstRoomGenerated = true;
@@ -106,12 +124,22 @@ public class DungeonManager : MonoBehaviour
                 }
                 
             }
-            //Cuando acabamos con las puertas de una room, vamos con las de la siguiente
-            currentRoom = lastRoom;
-            Debug.Log($"Next room = {currentRoom.GetComponent<Room>().type}");
+            
+            if (currentRoom != lastRoom)
+            {
+                //Cuando acabamos con las puertas de una room, vamos con las de la siguiente
+                currentRoom = lastRoom;
+                //Debug.Log($"Next room = {currentRoom.GetComponent<Room>().type}");
+            }
+            else if(roomsToGenerate != 0)
+            {
+                //Si llegamos aqui significa que nos hemos bloqueado, no se puede seguir generando la mazmorra
+                Debug.Log($"Hemos llegado a un bloqueo, quedan {roomsToGenerate} rooms por generar");
+                isClose = true;
+            } 
         }
 
-        Debug.Log($"Sale del bucle con isClose = {isClose} y roomsToGenerate = {roomsToGenerate}");
+        //Debug.Log($"Sale del bucle con isClose = {isClose} y roomsToGenerate = {roomsToGenerate}");
     }
 
     public void GenerateDungeonBase()
@@ -179,6 +207,7 @@ public class DungeonManager : MonoBehaviour
         foreach (var item in predefinedRooms)
         {
             item.GetComponent<Room>().ClearDoors();
+            item.GetComponent<Room>().ClearConnections();
             item.GetComponent<Room>().SetDoors();
         }
     }
@@ -201,4 +230,65 @@ public class DungeonManager : MonoBehaviour
 
         return position;
     }
+
+    public bool isBlocked(GameObject currentRoom, Door door) //Devuelve true si choca con algo
+    {
+        Vector3 origin = Vector3.zero;
+        Vector3 target1 = Vector3.zero; //hacemos tres raycasts
+        Vector3 target2 = Vector3.zero;
+        Vector3 target3 = Vector3.zero;
+        float maxDistance = 10f; ;
+        float offsetY = 3f;
+        float offset = 0f; //a cuanta distancia del centro se lanza el raycast
+        float offsetTarget = distance / 2;
+
+        switch (door)
+        {
+            case Door.Right:
+                origin = new Vector3(currentRoom.transform.position.x, currentRoom.transform.position.y + offsetY, currentRoom.transform.position.z + offset);
+                target1 = new Vector3(currentRoom.transform.position.x, currentRoom.transform.position.y, currentRoom.transform.position.z + distance * 2);
+                target2 = new Vector3(currentRoom.transform.position.x + offsetTarget, currentRoom.transform.position.y, currentRoom.transform.position.z + distance * 2);
+                target3 = new Vector3(currentRoom.transform.position.x - offsetTarget, currentRoom.transform.position.y, currentRoom.transform.position.z + distance * 2);
+                break;
+            case Door.Down:
+                origin = new Vector3(currentRoom.transform.position.x + offset, currentRoom.transform.position.y + offsetY, currentRoom.transform.position.z);
+                target1 = new Vector3(currentRoom.transform.position.x + distance * 2, currentRoom.transform.position.y, currentRoom.transform.position.z);
+                target2 = new Vector3(currentRoom.transform.position.x + distance * 2, currentRoom.transform.position.y, currentRoom.transform.position.z + offsetTarget);
+                target3 = new Vector3(currentRoom.transform.position.x + distance * 2, currentRoom.transform.position.y, currentRoom.transform.position.z - offsetTarget);
+                break;
+            case Door.Left:
+                origin = new Vector3(currentRoom.transform.position.x, currentRoom.transform.position.y + offsetY, currentRoom.transform.position.z - offset);
+                target1 = new Vector3(currentRoom.transform.position.x, currentRoom.transform.position.y, currentRoom.transform.position.z - distance * 2);
+                target2 = new Vector3(currentRoom.transform.position.x + offsetTarget, currentRoom.transform.position.y, currentRoom.transform.position.z - distance * 2);
+                target3 = new Vector3(currentRoom.transform.position.x - offsetTarget, currentRoom.transform.position.y, currentRoom.transform.position.z - distance * 2);
+                break;
+            case Door.Up:
+                origin = new Vector3(currentRoom.transform.position.x - offset, currentRoom.transform.position.y + offsetY, currentRoom.transform.position.z);
+                target1 = new Vector3(currentRoom.transform.position.x - distance * 2, currentRoom.transform.position.y, currentRoom.transform.position.z);
+                target2 = new Vector3(currentRoom.transform.position.x - distance * 2, currentRoom.transform.position.y, currentRoom.transform.position.z + offsetTarget);
+                target3 = new Vector3(currentRoom.transform.position.x - distance * 2, currentRoom.transform.position.y, currentRoom.transform.position.z - offsetTarget);
+                break;
+        }
+
+        //Debug.Log($"Vamos a comprobar si esta bloqueada la puerta {door} de la room {currentRoom.GetComponent<Room>().type}");
+        //En un futuro podria ser util si queremos ver con que elementos choca
+        RaycastHit hit;
+        if (Physics.Raycast(origin, (target1 - origin).normalized, out hit, maxDistance))
+        {
+            //Ha colisionado con algo
+            Debug.LogError($"(Raycast 1) La puerta {door} de la room {currentRoom.GetComponent<Room>().type} esta bloqueada con la room {hit.collider.GetComponent<Room>().type}");
+        }
+        else if (Physics.Raycast(origin, (target2 - origin).normalized, out hit, maxDistance))
+        {
+            Debug.LogError($"(Raycast 2) La puerta {door} de la room {currentRoom.GetComponent<Room>().type} esta bloqueada con la room {hit.collider.GetComponent<Room>().type}");
+        }
+        else if (Physics.Raycast(origin, (target3 - origin).normalized, out hit, maxDistance))
+        {
+            Debug.LogError($"(Raycast 3) La puerta {door} de la room {currentRoom.GetComponent<Room>().type} esta bloqueada con la room {hit.collider.GetComponent<Room>().type}");
+        }
+
+        //TODO: Devolver la distancia del que choca con algo, si es menor de una torre pequeña no pasa nada
+        return Physics.Raycast(origin, (target3 - origin).normalized, out hit, maxDistance) || Physics.Raycast(origin, (target2 - origin).normalized, out hit, maxDistance) || Physics.Raycast(origin, (target1 - origin).normalized, out hit, maxDistance);
+    }
+
 }
