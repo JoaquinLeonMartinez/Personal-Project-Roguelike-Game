@@ -3,14 +3,19 @@ using System.Collections.Generic;
 using UnityEngine;
 
 public enum RoomType { A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P};
+
+public enum DirectionState { open, block, empty};
+public enum RoomTypeBacktracking { A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, X};
 public enum Door { Up, Down, Right, Left};
 public class Room : MonoBehaviour
 {
     public RoomType type;
     public List<Door> doors = new List<Door>();
     public Door entryDoor;
+    //rooms hijo
     public List<GameObject> connections = new List<GameObject>();
     public GameObject parent;
+    int lastRoomChecked = 0;
 
     //Compatible rooms
     //public GameObject roomPrefab;
@@ -27,6 +32,51 @@ public class Room : MonoBehaviour
     {
         
     }
+
+    //Con esto comprobaremos si tiene alguna room P como hijo, si lo tiene la devolvemos
+    public GameObject GetRoomP()
+    {
+        bool enc = false;
+        int i;
+        for (i = lastRoomChecked; i < connections.Count && !enc; i++)
+        {
+            if (connections[i].GetComponent<Room>().type == RoomType.P)
+            {
+                lastRoomChecked = i;
+                enc = true;
+            }
+        }
+
+        lastRoomChecked = i;
+
+        return connections[lastRoomChecked];
+    }
+
+    public bool CheckIfAvailableSlots()
+    {
+        return lastRoomChecked < connections.Count;
+    }
+
+    public bool DeleteRoomsP()
+    {
+        bool enc = false;
+
+        for (int i = 0; i < connections.Count; i++)
+        {
+            if (connections[i].GetComponent<Room>().type == RoomType.P)
+            {
+                enc = true;
+                //borramos
+                Destroy(connections[i].GetComponent<Room>());
+                connections.RemoveAt(i);
+                i--;
+            }
+        }
+
+        return enc;
+    }
+
+
 
     //Indica si una room tiene una puerta en un lugar determinado
     public bool DoorExisits(Door door)
@@ -94,9 +144,12 @@ public class Room : MonoBehaviour
 
     public void SetUp(GameObject _parent, Door door)
     {
-        SetParent(_parent);
-        entryDoor = door; //nos fiamos de que sea correcta
-        DisableDoor(door);
+        if (type != RoomType.P)
+        {
+            SetParent(_parent);
+            entryDoor = door; //nos fiamos de que sea correcta
+            DisableDoor(door);
+        }
     }
 
     public void SetParent(GameObject _parent)
