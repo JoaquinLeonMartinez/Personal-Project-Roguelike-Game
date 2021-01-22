@@ -1874,5 +1874,5 @@ MonoBehaviour:
   dungeonContainer: {fileID: 615791052}
   generatedRooms: []
   grid: []
-  sizeX: 10
-  sizeY: 10
+  sizeX: 4
+  sizeY: 4

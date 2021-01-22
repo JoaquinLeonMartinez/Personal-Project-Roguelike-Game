@@ -46,7 +46,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   type: 15
   doors: 
+  entryDoor: 0
   connections: []
+  parent: {fileID: 0}
+  typeBkg: 15
 --- !u!1 &8374005690241611384
 GameObject:
   m_ObjectHideFlags: 0
@@ -156,4 +159,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   type: 15
   doors: 
+  entryDoor: 0
   connections: []
+  parent: {fileID: 0}
+  typeBkg: 0

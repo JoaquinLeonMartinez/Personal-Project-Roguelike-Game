@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
+
 public class DungeonManager : MonoBehaviour
 {
     //Singleton
@@ -50,8 +51,8 @@ public class DungeonManager : MonoBehaviour
 
     //backtraking
     public List<Room> grid;
-    public int sizeX = 4;
-    public int sizeY = 4;
+    int sizeX = 4;
+    int sizeY = 4;
 
 
     void Start()
@@ -67,11 +68,10 @@ public class DungeonManager : MonoBehaviour
 
         GenerateDungeonBacktrackingManager();
         //TODO: 
-        // No funciona el check derecha e izquierda
-        // Meter el random para no generar siempre la misma room
+        // Tienen que estar conectados siempre
         // Meter las salas P
-        // Exportador a muralla real
-
+        // Autocontrolar el tamaño de la grid en funcion de la rooms to generate
+        // Arreglar el clear
     }
 
     public bool pruebaBacktracking(int prueba)
@@ -87,7 +87,6 @@ public class DungeonManager : MonoBehaviour
             return pruebaBacktracking(prueba - 1);
         }
     }
-
 
     public void GenerateDungeonLinealImproved()
     {
@@ -146,6 +145,10 @@ public class DungeonManager : MonoBehaviour
             {
                 Debug.LogError("No hay solucion");
             }
+            else
+            {
+                GridToDungeonExport(grid);
+            }
         }
 
     }
@@ -161,6 +164,41 @@ public class DungeonManager : MonoBehaviour
     public void PrintGrid()
     {
         Debug.Log($" \n {grid[0].typeBkg} {grid[1].typeBkg} {grid[2].typeBkg} {grid[3].typeBkg} \n {grid[4].typeBkg} {grid[5].typeBkg} {grid[6].typeBkg} {grid[7].typeBkg} \n {grid[8].typeBkg} {grid[9].typeBkg} {grid[10].typeBkg} {grid[11].typeBkg} \n {grid[12].typeBkg} {grid[13].typeBkg} {grid[14].typeBkg} {grid[15].typeBkg}");
+    }
+
+    public void GridToDungeonExport(List<Room> grid)
+    {
+        for (int i = 0; i < grid.Count; i++)
+        {
+            if (grid[i].typeBkg != RoomTypeBacktracking.X)
+            {
+                var roomToInstantiate = GetRoomPrefab(grid[i].typeBkg);
+                Instantiate(roomToInstantiate, GetPositionWorld(i), roomToInstantiate.transform.rotation);
+            }
+
+        }
+    }
+    //(numeroDeCelda%tamañoY , numeroDeZelda/tamañoY)
+    public Vector3 GetPositionWorld(int positionGrid)
+    {
+        return new Vector3((positionGrid / sizeY) * distance, 0, (positionGrid % sizeY) * distance);
+    }
+
+    public GameObject GetRoomPrefab(RoomTypeBacktracking type)
+    {
+        GameObject target = null;
+        bool enc = false;
+
+        for (int i = 0; i < predefinedRooms.Count && !enc; i++)
+        {
+            if (predefinedRooms[i].GetComponent<Room>().typeBkg == type)
+            {
+                enc = true;
+                target = predefinedRooms[i];
+            }
+        }
+
+        return target;
     }
 
 
@@ -215,14 +253,50 @@ public class DungeonManager : MonoBehaviour
         //Chequear izquierda
         dictionaryDirections.Add(Door.Left, CheckDirection(grid, position, Door.Left));
 
-        // con lo que devuelven necesitamos obtener una lista de rooms compatibles
-        compatibles = GenerateOptions(dictionaryDirections);
+        //Comprobar si la conexion con room anterior existe (y no es el caso 0), en caso de no tener conexion ni siquiera intenta buscar compatibles, pone X
+        if (ValidRoom(position, dictionaryDirections))
+        {
+            // con lo que devuelven necesitamos obtener una lista de rooms compatibles
+            compatibles = GenerateOptions(dictionaryDirections);
+        }
 
         dictionaryDirections.Clear(); //lo limpiamos por si acaso (no es necesario al ser una variable del propio metodo)
 
-        //Extra: Ordenar aleatoriamente 
-
         return compatibles;
+    }
+
+    public bool ValidRoom(int currentPos, Dictionary<Door, DirectionState> dictionaryDirections)
+    {
+        //TODO:Arreglar esto, no esta funcionando bien
+        if (currentPos == 0)
+        {
+            return true;
+        }
+        //Comprobamos izquierda y arriba ya que vamos generando de izquierda a derecha
+        bool validRoom = true;
+        int leftRoom = currentPos - 1;
+        int upRoom = currentPos - sizeY;
+        DirectionState stateLeft = DirectionState.block;
+        DirectionState stateUp = DirectionState.block;
+        int currentRow = currentPos / sizeY;
+        int lastRow = leftRoom / sizeY;
+
+        if (currentRow == lastRow) //si estan en la misma fila comprobamos a la izquierda
+        {
+            stateLeft = dictionaryDirections[Door.Left]; //comprobamos a puerta izquierda
+        }
+        
+        if(upRoom > 0)//si no esta en la misma fila, comprobamos arriba
+        {
+            stateUp = dictionaryDirections[Door.Up];
+        }
+
+        if (stateLeft != DirectionState.open && stateUp != DirectionState.open)
+        {
+            validRoom = false;
+        }
+
+        return validRoom;
     }
 
     public DirectionState CheckDirection(List<Room> grid, int currentPos, Door direction)
@@ -231,20 +305,25 @@ public class DungeonManager : MonoBehaviour
         DirectionState state = DirectionState.block;
 
         int posToCheck = 0;
-        
+        int currentRow = 0;
+        int posToCheckRow = 0;
+
         switch (direction)
         {
             case Door.Up:
                 //Comprobamos la casilla de arriba, viniendo de abajo
                 posToCheck = currentPos - sizeY;
-                state = CheckPosition(grid, posToCheck);
+                state = CheckPosition(grid, posToCheck, Door.Down);
                 break;
 
             case Door.Right:
                 posToCheck = currentPos + 1;
-                if ((posToCheck/sizeY) == (currentPos/sizeY))//esto siginifica que estan en la misma fila, por lo tanto comprobamos el resto de condiciones, sino bloqued
+                currentRow = currentPos / sizeY;
+                posToCheckRow = posToCheck / sizeY;
+                Debug.Log($"posToCheck = {posToCheck} == currentPos {currentPos}, pertenecen a las filas {posToCheckRow} == {currentRow}, sizeY == {sizeY}");
+                if (currentRow == posToCheckRow)//esto siginifica que estan en la misma fila, por lo tanto comprobamos el resto de condiciones, sino bloqued
                 {
-                    state = CheckPosition(grid, posToCheck);
+                    state = CheckPosition(grid, posToCheck, Door.Left);
                 }
                 else
                 {
@@ -254,14 +333,17 @@ public class DungeonManager : MonoBehaviour
 
             case Door.Down:
                 posToCheck = currentPos + sizeY;
-                state = CheckPosition(grid, posToCheck);
+                state = CheckPosition(grid, posToCheck, Door.Up);
                 break;
 
             case Door.Left:
                 posToCheck = currentPos - 1;
-                if ((posToCheck / sizeY) == (currentPos/ sizeY)) //esto siginifica que estan en la misma fila, por lo tanto comprobamos el resto de condiciones, sino bloqued
+                currentRow = currentPos / sizeY;
+                posToCheckRow = posToCheck / sizeY;
+                Debug.Log($"posToCheck = {posToCheck} == currentPos {currentPos}, pertenecen a las filas {posToCheckRow} == {currentRow}, sizeY == {sizeY}");
+                if (currentRow == posToCheckRow) //esto siginifica que estan en la misma fila, por lo tanto comprobamos el resto de condiciones, sino bloqued
                 {
-                    state = CheckPosition(grid, posToCheck);
+                    state = CheckPosition(grid, posToCheck, Door.Right);
                 }
                 else
                 {
@@ -273,7 +355,7 @@ public class DungeonManager : MonoBehaviour
         return state;
     }
 
-    public DirectionState CheckPosition(List<Room> grid, int posToCheck)
+    public DirectionState CheckPosition(List<Room> grid, int posToCheck, Door door)
     {
         DirectionState state = DirectionState.block;
 
@@ -285,11 +367,11 @@ public class DungeonManager : MonoBehaviour
         {
             state = DirectionState.empty; //La room de arriba esta vacia
         }
-        else if (grid[posToCheck].doorDictionary[Door.Down])
+        else if (grid[posToCheck].doorDictionary[door]) //TODO, ESTO NO DDEBERIA SER SIEMPRE DOWN
         {
             state = DirectionState.open; //hay una puerta con una puerta abierta, por lo tanto la room que vaya a qui debe tener una puerta abierta
         }
-        else if (!grid[posToCheck].doorDictionary[Door.Down])
+        else if (!grid[posToCheck].doorDictionary[door])
         {
             state = DirectionState.block; //hay una sala sin puerta, por lo tanto bloqueada
         }
@@ -322,8 +404,13 @@ public class DungeonManager : MonoBehaviour
         //bucle añadiendo a compatibles todas las que tengan Up false
         compatibles = Filter(dictionaryDirections, disponibleRooms);
 
+        //Randomize list
+        ListOperations.Shuffle<Room>(compatibles);
+
         return compatibles;
     }
+
+
 
     public List<Room> Filter(Dictionary<Door, DirectionState> dictionaryDirections, List<Room> candidates)
     {
@@ -355,9 +442,6 @@ public class DungeonManager : MonoBehaviour
 
         return candidates;
     }
-
-
-
 
     public void GenerateDungeonLinealImprovedFail() //not working
     {

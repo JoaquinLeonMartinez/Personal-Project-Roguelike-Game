@@ -95,6 +95,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   type: 2
   doors: 
+  entryDoor: 0
+  connections: []
+  parent: {fileID: 0}
+  typeBkg: 2
 --- !u!64 &4405031997166010424
 MeshCollider:
   m_ObjectHideFlags: 0
