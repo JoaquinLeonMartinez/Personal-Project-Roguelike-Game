@@ -49,9 +49,10 @@ public class DungeonManager : MonoBehaviour
 
 
     //backtraking
-    public List<RoomTypeBacktracking> grid;
-    public int sizeX = 10;
-    public int sizeY = 10;
+    public List<Room> grid;
+    public int sizeX = 4;
+    public int sizeY = 4;
+
 
     void Start()
     {
@@ -62,8 +63,31 @@ public class DungeonManager : MonoBehaviour
 
     private void GenerateDungeon()
     {
-        GenerateDungeonLinealImproved();
+        //GenerateDungeonLineal();
+
+        GenerateDungeonBacktrackingManager();
+        //TODO: 
+        // No funciona el check derecha e izquierda
+        // Meter el random para no generar siempre la misma room
+        // Meter las salas P
+        // Exportador a muralla real
+
     }
+
+    public bool pruebaBacktracking(int prueba)
+    {
+        Debug.Log($"{prueba}");
+        if (prueba == 0)
+        {
+            Debug.Log("Los backtrackings funcionan");
+            return true;
+        }
+        else
+        {
+            return pruebaBacktracking(prueba - 1);
+        }
+    }
+
 
     public void GenerateDungeonLinealImproved()
     {
@@ -111,95 +135,228 @@ public class DungeonManager : MonoBehaviour
 
     }
 
+    public void GenerateDungeonBacktrackingManager()
+    {
+        if (roomsToGenerate < (sizeX*sizeY))
+        {
+            //Backtracking
+            InitGrid(); // ponemos toda la grid a X
+            PrintGrid();
+            if(!GenerateDungeonBacktracking(grid, 0, roomsToGenerate))
+            {
+                Debug.LogError("No hay solucion");
+            }
+        }
 
-    public void InitGridTypes()
+    }
+    public void InitGrid()
     {
         grid.Clear();
         for (int i = 0; i < (sizeX*sizeY); i++)
         {
-            grid.Add(RoomTypeBacktracking.X);
+            grid.Add(new Room(RoomTypeBacktracking.X));
         }
     }
 
-    //TODO: probar la clase grid
-    //(numeroDeCelda/tamañoY , numeroDeZelda%tamañoY)
-    //la lista grid tiene que venir llena de X
-    public bool GenerateDungeonBacktracking(List<RoomTypeBacktracking> grid, int position)
+    public void PrintGrid()
     {
-        List<RoomTypeBacktracking> arrayPosiblesOpciones = GetCompatibles(grid, position);
+        Debug.Log($" \n {grid[0].typeBkg} {grid[1].typeBkg} {grid[2].typeBkg} {grid[3].typeBkg} \n {grid[4].typeBkg} {grid[5].typeBkg} {grid[6].typeBkg} {grid[7].typeBkg} \n {grid[8].typeBkg} {grid[9].typeBkg} {grid[10].typeBkg} {grid[11].typeBkg} \n {grid[12].typeBkg} {grid[13].typeBkg} {grid[14].typeBkg} {grid[15].typeBkg}");
+    }
+
+
+    //(numeroDeCelda%tamañoY , numeroDeZelda/tamañoY)
+    public bool GenerateDungeonBacktracking(List<Room> grid, int position, int roomsToGenerate)
+    {
+        if (roomsToGenerate == 0)
+        {
+            return true; //esto indica que hemos llegado al final y lo hemos petado
+        }
+
+        if (position >= grid.Count)
+        {
+            return false; //hemos llegado al final y esta solucion no era buena
+        }
+
+        List<Room> arrayPosiblesOpciones = GetCompatibles(grid, position);
+
         bool isOk = false;
         for (int i = 0; i < arrayPosiblesOpciones.Count && !isOk; i++)
         {
             grid[position] = arrayPosiblesOpciones[i];
-            isOk = GenerateDungeonBacktracking(grid, position);//esto no es asi realmente, habria que incrementarlo bien
+            Debug.Log($"Intentamos posicion {position} con {arrayPosiblesOpciones[i].typeBkg}, quedan {roomsToGenerate - 1} rooms por generar");
+            PrintGrid();
+            isOk = GenerateDungeonBacktracking(grid, position + 1, roomsToGenerate - 1);
         }
 
         if (isOk)
         {
-            Debug.Log($"La casilla ({position / sizeY},{position % sizeY}) se ha generado con una {grid[position]}");
-            //Extra: generar aqui todas las P
+            Debug.Log($"La casilla {position} se ha generado con una {grid[position].typeBkg}");
+            //Extra: generar aqui todas las P (de esta room)
             return true;
         }
         else
         {
             return false;
         }
-
     }
 
-    public List<RoomTypeBacktracking> GetCompatibles(List<RoomTypeBacktracking> grid, int position)
+    public List<Room> GetCompatibles(List<Room> grid, int position)
     {
-        List<RoomTypeBacktracking> compatibles = new List<RoomTypeBacktracking>();
-        //si es la primera genera una si o si
-        if (position == 0)
-        {
-            //Genera una si o si
-        }
-
+        List<Room> compatibles = new List<Room>();
+        Dictionary<Door, DirectionState> dictionaryDirections = new Dictionary<Door, DirectionState>();
         //Cosas a tener en cuenta a la hora de chequear:
 
-        //no hace falta llamar a todas, segun el tipo de room se llama a unas u a otras
         //Chequear arriba
+        dictionaryDirections.Add(Door.Up, CheckDirection(grid, position, Door.Up));
         //Chequear derecha
+        dictionaryDirections.Add(Door.Right, CheckDirection(grid, position, Door.Right));
         //Chequear abajo
+        dictionaryDirections.Add(Door.Down, CheckDirection(grid, position, Door.Down));
         //Chequear izquierda
-        //CheckDirection(List<RoomTypeBacktracking> grid, int currentPos, Door direction)
+        dictionaryDirections.Add(Door.Left, CheckDirection(grid, position, Door.Left));
+
+        // con lo que devuelven necesitamos obtener una lista de rooms compatibles
+        compatibles = GenerateOptions(dictionaryDirections);
+
+        dictionaryDirections.Clear(); //lo limpiamos por si acaso (no es necesario al ser una variable del propio metodo)
+
+        //Extra: Ordenar aleatoriamente 
 
         return compatibles;
     }
 
-    public void CheckDirection(List<RoomTypeBacktracking> grid, int currentPos, Door direction)
+    public DirectionState CheckDirection(List<Room> grid, int currentPos, Door direction)
     {
         //Las opciones son 3: que arriba no haya nada (X), que arriba haya algo que bloquee (final del array o room sin puerta), que haya una room con puerta)
         DirectionState state = DirectionState.block;
 
+        int posToCheck = 0;
+        
         switch (direction)
         {
             case Door.Up:
                 //Comprobamos la casilla de arriba, viniendo de abajo
-                if ((currentPos - sizeY) > 0) 
-                {
-                    state = DirectionState.block; //no existe la posicion
-                }
-                else if( grid[currentPos - sizeY] == RoomTypeBacktracking.X)
-                {
-                    state = DirectionState.empty; //se podría utilizar
-                }
-                else //if(Room with open door)
-                {
-                    //indicar que la puerta de arriba tiene una conexion
-                    state = DirectionState.open;
-                }//else room with close door -- state = DirectionState.block;
+                posToCheck = currentPos - sizeY;
+                state = CheckPosition(grid, posToCheck);
+                break;
 
-                break;
             case Door.Right:
+                posToCheck = currentPos + 1;
+                if ((posToCheck/sizeY) == (currentPos/sizeY))//esto siginifica que estan en la misma fila, por lo tanto comprobamos el resto de condiciones, sino bloqued
+                {
+                    state = CheckPosition(grid, posToCheck);
+                }
+                else
+                {
+                    state = DirectionState.block;
+                }
                 break;
+
             case Door.Down:
+                posToCheck = currentPos + sizeY;
+                state = CheckPosition(grid, posToCheck);
                 break;
+
             case Door.Left:
+                posToCheck = currentPos - 1;
+                if ((posToCheck / sizeY) == (currentPos/ sizeY)) //esto siginifica que estan en la misma fila, por lo tanto comprobamos el resto de condiciones, sino bloqued
+                {
+                    state = CheckPosition(grid, posToCheck);
+                }
+                else
+                {
+                    state = DirectionState.block;
+                }
                 break;
         }
+        Debug.Log($"En pos {currentPos} la direccion {direction} se encuentra en estado {state}");
+        return state;
     }
+
+    public DirectionState CheckPosition(List<Room> grid, int posToCheck)
+    {
+        DirectionState state = DirectionState.block;
+
+        if (posToCheck < 0 || posToCheck >= grid.Count)//con esto comprobamos arriba y abajo
+        {
+            state = DirectionState.block; //no existe la posicion
+        }
+        else if (grid[posToCheck].typeBkg == RoomTypeBacktracking.X)
+        {
+            state = DirectionState.empty; //La room de arriba esta vacia
+        }
+        else if (grid[posToCheck].doorDictionary[Door.Down])
+        {
+            state = DirectionState.open; //hay una puerta con una puerta abierta, por lo tanto la room que vaya a qui debe tener una puerta abierta
+        }
+        else if (!grid[posToCheck].doorDictionary[Door.Down])
+        {
+            state = DirectionState.block; //hay una sala sin puerta, por lo tanto bloqueada
+        }
+
+        return state;
+    }
+
+
+    public List<Room> GenerateOptions(Dictionary<Door, DirectionState> dictionaryDirections)
+    {
+        List<Room> disponibleRooms = new List<Room>();
+        //disponibleRooms.Add(new Room(RoomTypeBacktracking.A));
+        disponibleRooms.Add(new Room(RoomTypeBacktracking.B));
+        disponibleRooms.Add(new Room(RoomTypeBacktracking.C));
+        disponibleRooms.Add(new Room(RoomTypeBacktracking.D));
+        disponibleRooms.Add(new Room(RoomTypeBacktracking.E));
+        disponibleRooms.Add(new Room(RoomTypeBacktracking.F));
+        disponibleRooms.Add(new Room(RoomTypeBacktracking.G));
+        disponibleRooms.Add(new Room(RoomTypeBacktracking.H));
+        disponibleRooms.Add(new Room(RoomTypeBacktracking.I));
+        //disponibleRooms.Add(new Room(RoomTypeBacktracking.J)); //de las comentadas no tengo las piezas D:
+        //disponibleRooms.Add(new Room(RoomTypeBacktracking.K));
+        //disponibleRooms.Add(new Room(RoomTypeBacktracking.L));
+        //disponibleRooms.Add(new Room(RoomTypeBacktracking.M));
+        disponibleRooms.Add(new Room(RoomTypeBacktracking.N));
+        disponibleRooms.Add(new Room(RoomTypeBacktracking.O));
+        //disponibleRooms.Add(new Room(RoomTypeBacktracking.P)); //de esta si la tengo pero es para despues
+        List<Room> compatibles = new List<Room>();
+
+        //bucle añadiendo a compatibles todas las que tengan Up false
+        compatibles = Filter(dictionaryDirections, disponibleRooms);
+
+        return compatibles;
+    }
+
+    public List<Room> Filter(Dictionary<Door, DirectionState> dictionaryDirections, List<Room> candidates)
+    {
+        for (int i = candidates.Count - 1; i >= 0; i--)
+        {
+            if (!candidates[i].isValid(dictionaryDirections[Door.Up], Door.Up))
+            {
+                candidates.RemoveAt(i);
+            }
+            else if (!candidates[i].isValid(dictionaryDirections[Door.Right], Door.Right))
+            {
+                candidates.RemoveAt(i);
+            } 
+            else if (!candidates[i].isValid(dictionaryDirections[Door.Down], Door.Down))
+            {
+                candidates.RemoveAt(i);
+            }
+            else if (!candidates[i].isValid(dictionaryDirections[Door.Left], Door.Left))
+            {
+                candidates.RemoveAt(i);
+            }
+        }
+
+        Debug.Log($"Acabamos de filtrar todas las direcciones, hay {candidates.Count} candidatos");
+        for (int i = 0; i < candidates.Count; i++)
+        {
+            Debug.Log($"Candidato {i}: {candidates[i].typeBkg}");
+        }
+
+        return candidates;
+    }
+
+
 
 
     public void GenerateDungeonLinealImprovedFail() //not working

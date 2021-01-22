@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -7,6 +8,7 @@ public enum RoomType { A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P};
 public enum DirectionState { open, block, empty};
 public enum RoomTypeBacktracking { A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, X};
 public enum Door { Up, Down, Right, Left};
+
 public class Room : MonoBehaviour
 {
     public RoomType type;
@@ -17,6 +19,10 @@ public class Room : MonoBehaviour
     public GameObject parent;
     int lastRoomChecked = 0;
 
+    //Backtraking:
+    public RoomTypeBacktracking typeBkg;
+    public Dictionary<Door, bool> doorDictionary = new Dictionary<Door, bool>(); //true es que hay puerta y false es que no hay o ya se esta usando
+
     //Compatible rooms
     //public GameObject roomPrefab;
     //public int openedDoors;
@@ -26,11 +32,127 @@ public class Room : MonoBehaviour
     {
         //En el start, segun el tipo podemos generar un array con las puertas que tiene directamente (de esta forma no habira que meterlo a mano cada vez que hacemos una sala)
         //Debug.Log($"Se acaba de crear una room de tipo {type}, con {doors.Count} puertas");
+        
     }
 
     void Update()
     {
         
+    }
+
+    public Room(RoomTypeBacktracking _type)
+    {
+        this.typeBkg = _type;
+        SetupDoors(_type);
+    }
+
+    private void SetupDoors(RoomTypeBacktracking type)
+    {
+        switch (type)
+        {
+            case RoomTypeBacktracking.A:
+                doorDictionary.Add(Door.Right, true);
+                doorDictionary.Add(Door.Down, true);
+                doorDictionary.Add(Door.Left, true);
+                doorDictionary.Add(Door.Up, true);
+                break;
+            case RoomTypeBacktracking.B:
+                doorDictionary.Add(Door.Right, true);
+                doorDictionary.Add(Door.Down, true);
+                doorDictionary.Add(Door.Up, true);
+                doorDictionary.Add(Door.Left, false);
+                break;
+            case RoomTypeBacktracking.C:
+                doorDictionary.Add(Door.Right, true);
+                doorDictionary.Add(Door.Down,true);
+                doorDictionary.Add(Door.Left,true);
+                doorDictionary.Add(Door.Up, false);
+                break;
+            case RoomTypeBacktracking.D:
+                doorDictionary.Add(Door.Down, true);
+                doorDictionary.Add(Door.Left, true);
+                doorDictionary.Add(Door.Up, true);
+                doorDictionary.Add(Door.Right, false);
+                break;
+            case RoomTypeBacktracking.E:
+                doorDictionary.Add(Door.Right, true);
+                doorDictionary.Add(Door.Left, true);
+                doorDictionary.Add(Door.Up, true);
+                doorDictionary.Add(Door.Down, false);
+                break;
+            case RoomTypeBacktracking.F:
+                doorDictionary.Add(Door.Right, true);
+                doorDictionary.Add(Door.Down, true);
+                doorDictionary.Add(Door.Left, false);
+                doorDictionary.Add(Door.Up, false);
+                break;
+            case RoomTypeBacktracking.G:
+                doorDictionary.Add(Door.Right, false);
+                doorDictionary.Add(Door.Down, true);
+                doorDictionary.Add(Door.Left, true);
+                doorDictionary.Add(Door.Up, false);
+                break;
+            case RoomTypeBacktracking.H:
+                doorDictionary.Add(Door.Right, false);
+                doorDictionary.Add(Door.Left, true);
+                doorDictionary.Add(Door.Up, true);
+                doorDictionary.Add(Door.Down, false);
+                break;
+            case RoomTypeBacktracking.I:
+                doorDictionary.Add(Door.Right, true);
+                doorDictionary.Add(Door.Up, true);
+                doorDictionary.Add(Door.Left, false);
+                doorDictionary.Add(Door.Down, false);
+                break;
+            case RoomTypeBacktracking.J:
+                doorDictionary.Add(Door.Right, false);
+                doorDictionary.Add(Door.Up, true);
+                doorDictionary.Add(Door.Left, false);
+                doorDictionary.Add(Door.Down, false);
+                break;
+            case RoomTypeBacktracking.K:
+                doorDictionary.Add(Door.Right, true);
+                doorDictionary.Add(Door.Left, false);
+                doorDictionary.Add(Door.Down, false);
+                doorDictionary.Add(Door.Up, false);
+                break;
+            case RoomTypeBacktracking.L:
+                doorDictionary.Add(Door.Right, false);
+                doorDictionary.Add(Door.Down, true);
+                doorDictionary.Add(Door.Left, false);
+                doorDictionary.Add(Door.Up, false);
+                break;
+            case RoomTypeBacktracking.M:
+                doorDictionary.Add(Door.Right, false);
+                doorDictionary.Add(Door.Left, true);
+                doorDictionary.Add(Door.Down, false);
+                doorDictionary.Add(Door.Up, false);
+                break;
+            case RoomTypeBacktracking.N:
+                doorDictionary.Add(Door.Right, true);
+                doorDictionary.Add(Door.Left, true);
+                doorDictionary.Add(Door.Down, false);
+                doorDictionary.Add(Door.Up, false);
+                break;
+            case RoomTypeBacktracking.O:
+                doorDictionary.Add(Door.Right, false);
+                doorDictionary.Add(Door.Down, true);
+                doorDictionary.Add(Door.Up, true);
+                doorDictionary.Add(Door.Left, false);
+                break;
+            case RoomTypeBacktracking.P:
+                doorDictionary.Add(Door.Right, false);
+                doorDictionary.Add(Door.Left, false);
+                doorDictionary.Add(Door.Up, false);
+                doorDictionary.Add(Door.Down, false);
+                break;
+            case RoomTypeBacktracking.X:
+                doorDictionary.Add(Door.Right, false);
+                doorDictionary.Add(Door.Left, false);
+                doorDictionary.Add(Door.Up, false);
+                doorDictionary.Add(Door.Down, false);
+                break;
+        }
     }
 
     //Con esto comprobaremos si tiene alguna room P como hijo, si lo tiene la devolvemos
@@ -247,5 +369,23 @@ public class Room : MonoBehaviour
             case RoomType.P:
                 break;
         }
+    }
+
+
+    //backtracking:
+    public bool isValid(DirectionState directionState, Door door)
+    {
+        if (directionState == DirectionState.block && this.doorDictionary[door])
+        {
+            //eliminar
+            return false;
+        }
+        else if (directionState == DirectionState.open && !this.doorDictionary[door])
+        {
+            //eliminar
+            return false;
+        }
+
+        return true;
     }
 }
