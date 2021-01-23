@@ -1866,6 +1866,10 @@ MonoBehaviour:
   - {fileID: 1433816299987774120, guid: addbac0f4aaf3ae4c97f66df6d5743ed, type: 3}
   - {fileID: 1371222371004104733, guid: ef070c5c02b739b48bae5636ba3b60ef, type: 3}
   - {fileID: 3100545190904748137, guid: 7bcab0dcc4bf021438e10adbf76ce87b, type: 3}
+  - {fileID: 5307473185831344320, guid: 93ce821671d0fb949814e1c7063760ea, type: 3}
+  - {fileID: 5307473185831344320, guid: e571c3527773afa4681e654da4b599c7, type: 3}
+  - {fileID: 5307473185831344320, guid: f61db6396b75baa43938a0719f399f26, type: 3}
+  - {fileID: 5307473185831344320, guid: 3db53dca8380c284db57e09150d2b5b6, type: 3}
   - {fileID: 3489208924350936263, guid: ec06d6fa979b25b4c803bc991f6fca43, type: 3}
   - {fileID: 7820290484779537041, guid: bf1366c9d4bd2c947b647f522f1b7bda, type: 3}
   - {fileID: 5307473185831344320, guid: 0707b77aa823f17439b0a8b5e7f025e0, type: 3}
@@ -1874,5 +1878,3 @@ MonoBehaviour:
   dungeonContainer: {fileID: 615791052}
   generatedRooms: []
   grid: []
-  sizeX: 4
-  sizeY: 4

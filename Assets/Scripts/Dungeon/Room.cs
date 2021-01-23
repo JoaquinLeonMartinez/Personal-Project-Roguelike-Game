@@ -46,6 +46,66 @@ public class Room : MonoBehaviour
         SetupDoors(_type);
     }
 
+    public int GetOpenDoors(RoomTypeBacktracking type)
+    {
+        //TODO: no va a funcionar, no tiene porque ser de la izquierda las que cierran, podrian ser de la derecha
+        int openDoors = 0;
+        switch (type) //la derecha y abajo suman, las izquierdas y arriba restan
+        {
+            case RoomTypeBacktracking.A:
+                openDoors = 0; //Sumamos 2 pero tambien restamos dos
+                break;
+            case RoomTypeBacktracking.B:
+                openDoors = 1; //restamos una, sumamos dos
+                break;
+            case RoomTypeBacktracking.C:
+                openDoors = 1; //restamos una, sumamos dos
+                break;
+            case RoomTypeBacktracking.D:
+                openDoors = -1; //restamos dos, sumamos una
+                break;
+            case RoomTypeBacktracking.E:
+                openDoors = -1; //restamos dos, sumamos una
+                break;
+            case RoomTypeBacktracking.F:
+                openDoors = 2; //suma dos
+                break;
+            case RoomTypeBacktracking.G:
+                openDoors = 0; //+1-1
+                break;
+            case RoomTypeBacktracking.H:
+                openDoors = -2; //-2
+                break;
+            case RoomTypeBacktracking.I:
+                openDoors = 0; //+1-1
+                break;
+            case RoomTypeBacktracking.J:
+                openDoors = -1; // - 1
+                break;
+            case RoomTypeBacktracking.K:
+                openDoors = -1; // - 1
+                break;
+            case RoomTypeBacktracking.L:
+                openDoors = -1; // - 1
+                break;
+            case RoomTypeBacktracking.M:
+                openDoors = -1; // - 1
+                break;
+            case RoomTypeBacktracking.N:
+                openDoors = 0; //+1 - 1
+                break;
+            case RoomTypeBacktracking.O:
+                openDoors = 0; //+1 - 1
+                break;
+            case RoomTypeBacktracking.P:
+                break;
+            case RoomTypeBacktracking.X:
+                break;
+        }
+
+        return openDoors;
+    }
+
     private void SetupDoors(RoomTypeBacktracking type)
     {
         switch (type)

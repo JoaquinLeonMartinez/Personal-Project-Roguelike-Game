@@ -53,7 +53,7 @@ public class DungeonManager : MonoBehaviour
     public List<Room> grid;
     int sizeX = 4;
     int sizeY = 4;
-
+    int openDoors = 0;
 
     void Start()
     {
@@ -67,11 +67,8 @@ public class DungeonManager : MonoBehaviour
         //GenerateDungeonLineal();
 
         GenerateDungeonBacktrackingManager();
-        //TODO: 
-        // Tienen que estar conectados siempre
-        // Meter las salas P
-        // Autocontrolar el tamaño de la grid en funcion de la rooms to generate
-        // Arreglar el clear
+        //TODO:
+        //Arreglar el open doors
     }
 
     public bool pruebaBacktracking(int prueba)
@@ -136,22 +133,92 @@ public class DungeonManager : MonoBehaviour
 
     public void GenerateDungeonBacktrackingManager()
     {
-        if (roomsToGenerate < (sizeX*sizeY))
+        AdaptGrid();
+        InitGrid(); // ponemos toda la grid a X
+        PrintGrid();
+        Debug.Log($"Generamos mazmorras con rooms to generate = {roomsToGenerate}");
+        //Backtracking
+        if (!GenerateDungeonBacktracking(grid, 0, roomsToGenerate, openDoors))
         {
-            //Backtracking
-            InitGrid(); // ponemos toda la grid a X
-            PrintGrid();
-            if(!GenerateDungeonBacktracking(grid, 0, roomsToGenerate))
+            Debug.LogError("No hay solucion");
+        }
+        else
+        {
+            CloseOpenPaths(grid);
+            GridToDungeonExport(grid);
+        }
+    }
+
+    public void CloseOpenPaths(List<Room> grid)
+    {
+        for (int i = 0; i < grid.Count; i++)
+        {
+            if (grid[i].typeBkg == RoomTypeBacktracking.X) //si es tipo X y tiene alguna puerta abierta se pone
             {
-                Debug.LogError("No hay solucion");
-            }
-            else
-            {
-                GridToDungeonExport(grid);
+                Dictionary<Door, DirectionState> dictionaryDirections = new Dictionary<Door, DirectionState>();
+                //Cosas a tener en cuenta a la hora de chequear:
+
+                //Chequear arriba
+                dictionaryDirections.Add(Door.Up, CheckDirection(grid, i, Door.Up));
+                //Chequear derecha
+                dictionaryDirections.Add(Door.Right, CheckDirection(grid, i, Door.Right));
+                //Chequear abajo
+                dictionaryDirections.Add(Door.Down, CheckDirection(grid, i, Door.Down));
+                //Chequear izquierda
+                dictionaryDirections.Add(Door.Left, CheckDirection(grid, i, Door.Left));
+
+                if (dictionaryDirections[Door.Up] == DirectionState.open && dictionaryDirections[Door.Left] == DirectionState.open)
+                {
+                    grid[i] = new Room(RoomTypeBacktracking.H);
+                }
+                else if(dictionaryDirections[Door.Up] == DirectionState.open && dictionaryDirections[Door.Right] == DirectionState.open)
+                {
+                    grid[i] = new Room(RoomTypeBacktracking.I);
+                }
+                else if (dictionaryDirections[Door.Down] == DirectionState.open && dictionaryDirections[Door.Right] == DirectionState.open)
+                {
+                    grid[i] = new Room(RoomTypeBacktracking.F);
+                }
+                else if (dictionaryDirections[Door.Down] == DirectionState.open && dictionaryDirections[Door.Left] == DirectionState.open)
+                {
+                    grid[i] = new Room(RoomTypeBacktracking.G);
+                }
+                else if (dictionaryDirections[Door.Up] == DirectionState.open)
+                {
+                    //ponemos la J
+                    grid[i] = new Room(RoomTypeBacktracking.J);
+                }
+                else if (dictionaryDirections[Door.Right] == DirectionState.open)
+                {
+                    //ponemos la K
+                    grid[i] = new Room(RoomTypeBacktracking.K);
+                }
+                else if (dictionaryDirections[Door.Down] == DirectionState.open)
+                {
+                    //ponemos la L
+                    grid[i] = new Room(RoomTypeBacktracking.L);
+                }
+                else if (dictionaryDirections[Door.Left] == DirectionState.open)
+                {
+                    //ponemos la M
+                    grid[i] = new Room(RoomTypeBacktracking.M);
+                }
             }
         }
-
+        PrintGrid();
     }
+
+    public void AdaptGrid()//adaptamos la grid a las rooms que hay por generar
+    {
+        if(roomsToGenerate > (sizeX * sizeY) / 2)
+        {
+            sizeY = (int) Mathf.Sqrt(roomsToGenerate*2) + 1;
+            sizeX = sizeY;
+            Debug.Log($"Adaptamos la grid, ahora es de tamaño {sizeY*sizeX} posiciones");
+        }
+    }
+
+
     public void InitGrid()
     {
         grid.Clear();
@@ -163,8 +230,28 @@ public class DungeonManager : MonoBehaviour
 
     public void PrintGrid()
     {
-        Debug.Log($" \n {grid[0].typeBkg} {grid[1].typeBkg} {grid[2].typeBkg} {grid[3].typeBkg} \n {grid[4].typeBkg} {grid[5].typeBkg} {grid[6].typeBkg} {grid[7].typeBkg} \n {grid[8].typeBkg} {grid[9].typeBkg} {grid[10].typeBkg} {grid[11].typeBkg} \n {grid[12].typeBkg} {grid[13].typeBkg} {grid[14].typeBkg} {grid[15].typeBkg}");
+        Debug.Log($" {PrintAllGrid()}");
     }
+
+    public string PrintAllGrid()
+    {
+        string printedGrid = "Grid: ";
+
+        for (int i = 0; i < grid.Count; i++)
+        {
+            if (i % sizeY == 0) //esto significa que cambia de fila
+            {
+                printedGrid += "\n " + grid[i].typeBkg;
+            }
+            else
+            {
+                printedGrid += " " + grid[i].typeBkg;
+            }
+        }
+
+        return printedGrid;
+    }
+
 
     public void GridToDungeonExport(List<Room> grid)
     {
@@ -173,7 +260,8 @@ public class DungeonManager : MonoBehaviour
             if (grid[i].typeBkg != RoomTypeBacktracking.X)
             {
                 var roomToInstantiate = GetRoomPrefab(grid[i].typeBkg);
-                Instantiate(roomToInstantiate, GetPositionWorld(i), roomToInstantiate.transform.rotation);
+                var currentRoom = Instantiate(roomToInstantiate, GetPositionWorld(i), roomToInstantiate.transform.rotation);
+                currentRoom.transform.parent = dungeonContainer.transform;
             }
 
         }
@@ -201,13 +289,26 @@ public class DungeonManager : MonoBehaviour
         return target;
     }
 
+    public int GetNumOfOpenDoors()
+    { 
+        //cuenta las conexiones sin cerrar que hay
+        //podriamos hacer un bucle recorriendo toda la grid pero seria algo ineficiente, mejor llevar la cuenta
+        return openDoors;
+    }
 
-    //(numeroDeCelda%tamañoY , numeroDeZelda/tamañoY)
-    public bool GenerateDungeonBacktracking(List<Room> grid, int position, int roomsToGenerate)
+    public int UpdateOpenDoors(Room roomToInstantiate, int openDoors)
     {
-        if (roomsToGenerate == 0)
+        openDoors += roomToInstantiate.GetOpenDoors(roomToInstantiate.typeBkg);
+
+        return openDoors;
+    }
+
+
+    public bool GenerateDungeonBacktracking(List<Room> grid, int position, int roomsToGenerate, int openDoors)
+    {
+        if (roomsToGenerate <= 0)
         {
-            return true; //esto indica que hemos llegado al final y lo hemos petado
+            return true; //esto indica que hemos llegado al final y lo hemos petado (en plan bien)
         }
 
         if (position >= grid.Count)
@@ -215,15 +316,22 @@ public class DungeonManager : MonoBehaviour
             return false; //hemos llegado al final y esta solucion no era buena
         }
 
-        List<Room> arrayPosiblesOpciones = GetCompatibles(grid, position);
+        List<Room> arrayPosiblesOpciones = GetCompatibles(grid, position, openDoors);
 
         bool isOk = false;
+        bool firstTime = true;
         for (int i = 0; i < arrayPosiblesOpciones.Count && !isOk; i++)
         {
             grid[position] = arrayPosiblesOpciones[i];
-            Debug.Log($"Intentamos posicion {position} con {arrayPosiblesOpciones[i].typeBkg}, quedan {roomsToGenerate - 1} rooms por generar");
+            //openDoors = UpdateOpenDoors(arrayPosiblesOpciones[i], openDoors);
+            if (isNormalRoomType(arrayPosiblesOpciones[i].typeBkg) && firstTime)
+            {
+                roomsToGenerate--;
+                firstTime = false;
+            }
+            Debug.Log($"Intentamos posicion {position} con {arrayPosiblesOpciones[i].typeBkg}, quedan {roomsToGenerate} rooms por generar");
             PrintGrid();
-            isOk = GenerateDungeonBacktracking(grid, position + 1, roomsToGenerate - 1);
+            isOk = GenerateDungeonBacktracking(grid, position + 1, roomsToGenerate, openDoors);
         }
 
         if (isOk)
@@ -234,11 +342,24 @@ public class DungeonManager : MonoBehaviour
         }
         else
         {
+            grid[position].typeBkg = RoomTypeBacktracking.X;
             return false;
         }
     }
 
-    public List<Room> GetCompatibles(List<Room> grid, int position)
+    public bool isNormalRoomType(RoomTypeBacktracking type)
+    {
+        bool isValid = true;
+        //Si en un futuro tengo las salas J,K, L, M se quitarian del IF porque pasariamos a contarlos
+        if (type == RoomTypeBacktracking.X || type == RoomTypeBacktracking.J || type == RoomTypeBacktracking.K || type == RoomTypeBacktracking.L || type == RoomTypeBacktracking.M)
+        {
+            isValid = false;
+        }
+
+        return isValid;
+    }
+
+    public List<Room> GetCompatibles(List<Room> grid, int position, int openDoors)
     {
         List<Room> compatibles = new List<Room>();
         Dictionary<Door, DirectionState> dictionaryDirections = new Dictionary<Door, DirectionState>();
@@ -257,7 +378,12 @@ public class DungeonManager : MonoBehaviour
         if (ValidRoom(position, dictionaryDirections))
         {
             // con lo que devuelven necesitamos obtener una lista de rooms compatibles
-            compatibles = GenerateOptions(dictionaryDirections);
+            compatibles = GenerateOptions(dictionaryDirections, openDoors);
+        }
+        else
+        {
+            //ponemos una X para que continue
+            compatibles.Add(new Room(RoomTypeBacktracking.X));
         }
 
         dictionaryDirections.Clear(); //lo limpiamos por si acaso (no es necesario al ser una variable del propio metodo)
@@ -267,36 +393,17 @@ public class DungeonManager : MonoBehaviour
 
     public bool ValidRoom(int currentPos, Dictionary<Door, DirectionState> dictionaryDirections)
     {
-        //TODO:Arreglar esto, no esta funcionando bien
         if (currentPos == 0)
         {
             return true;
         }
-        //Comprobamos izquierda y arriba ya que vamos generando de izquierda a derecha
-        bool validRoom = true;
-        int leftRoom = currentPos - 1;
-        int upRoom = currentPos - sizeY;
-        DirectionState stateLeft = DirectionState.block;
-        DirectionState stateUp = DirectionState.block;
-        int currentRow = currentPos / sizeY;
-        int lastRow = leftRoom / sizeY;
 
-        if (currentRow == lastRow) //si estan en la misma fila comprobamos a la izquierda
+        if (dictionaryDirections[Door.Up] == DirectionState.open || dictionaryDirections[Door.Left] == DirectionState.open)
         {
-            stateLeft = dictionaryDirections[Door.Left]; //comprobamos a puerta izquierda
-        }
-        
-        if(upRoom > 0)//si no esta en la misma fila, comprobamos arriba
-        {
-            stateUp = dictionaryDirections[Door.Up];
+            return true;
         }
 
-        if (stateLeft != DirectionState.open && stateUp != DirectionState.open)
-        {
-            validRoom = false;
-        }
-
-        return validRoom;
+        return false; ;
     }
 
     public DirectionState CheckDirection(List<Room> grid, int currentPos, Door direction)
@@ -320,7 +427,7 @@ public class DungeonManager : MonoBehaviour
                 posToCheck = currentPos + 1;
                 currentRow = currentPos / sizeY;
                 posToCheckRow = posToCheck / sizeY;
-                Debug.Log($"posToCheck = {posToCheck} == currentPos {currentPos}, pertenecen a las filas {posToCheckRow} == {currentRow}, sizeY == {sizeY}");
+                //Debug.Log($"posToCheck = {posToCheck} == currentPos {currentPos}, pertenecen a las filas {posToCheckRow} == {currentRow}, sizeY == {sizeY}");
                 if (currentRow == posToCheckRow)//esto siginifica que estan en la misma fila, por lo tanto comprobamos el resto de condiciones, sino bloqued
                 {
                     state = CheckPosition(grid, posToCheck, Door.Left);
@@ -340,7 +447,7 @@ public class DungeonManager : MonoBehaviour
                 posToCheck = currentPos - 1;
                 currentRow = currentPos / sizeY;
                 posToCheckRow = posToCheck / sizeY;
-                Debug.Log($"posToCheck = {posToCheck} == currentPos {currentPos}, pertenecen a las filas {posToCheckRow} == {currentRow}, sizeY == {sizeY}");
+                //Debug.Log($"posToCheck = {posToCheck} == currentPos {currentPos}, pertenecen a las filas {posToCheckRow} == {currentRow}, sizeY == {sizeY}");
                 if (currentRow == posToCheckRow) //esto siginifica que estan en la misma fila, por lo tanto comprobamos el resto de condiciones, sino bloqued
                 {
                     state = CheckPosition(grid, posToCheck, Door.Right);
@@ -379,11 +486,11 @@ public class DungeonManager : MonoBehaviour
         return state;
     }
 
-
-    public List<Room> GenerateOptions(Dictionary<Door, DirectionState> dictionaryDirections)
+    public List<Room> GenerateOptions(Dictionary<Door, DirectionState> dictionaryDirections, int openDoors)
     {
         List<Room> disponibleRooms = new List<Room>();
-        //disponibleRooms.Add(new Room(RoomTypeBacktracking.A));
+
+        //disponibleRooms.Add(new Room(RoomTypeBacktracking.A)); // no tengo esta pieza
         disponibleRooms.Add(new Room(RoomTypeBacktracking.B));
         disponibleRooms.Add(new Room(RoomTypeBacktracking.C));
         disponibleRooms.Add(new Room(RoomTypeBacktracking.D));
@@ -392,13 +499,19 @@ public class DungeonManager : MonoBehaviour
         disponibleRooms.Add(new Room(RoomTypeBacktracking.G));
         disponibleRooms.Add(new Room(RoomTypeBacktracking.H));
         disponibleRooms.Add(new Room(RoomTypeBacktracking.I));
-        //disponibleRooms.Add(new Room(RoomTypeBacktracking.J)); //de las comentadas no tengo las piezas D:
-        //disponibleRooms.Add(new Room(RoomTypeBacktracking.K));
-        //disponibleRooms.Add(new Room(RoomTypeBacktracking.L));
-        //disponibleRooms.Add(new Room(RoomTypeBacktracking.M));
+
+        if (openDoors > 1) // estas rooms solo tienen una entrada, si solo quedase una puerta estariamos provocando un bloqueo
+        {
+            disponibleRooms.Add(new Room(RoomTypeBacktracking.J));
+            disponibleRooms.Add(new Room(RoomTypeBacktracking.K));
+            disponibleRooms.Add(new Room(RoomTypeBacktracking.L));
+            disponibleRooms.Add(new Room(RoomTypeBacktracking.M));
+        }
+
         disponibleRooms.Add(new Room(RoomTypeBacktracking.N));
         disponibleRooms.Add(new Room(RoomTypeBacktracking.O));
-        //disponibleRooms.Add(new Room(RoomTypeBacktracking.P)); //de esta si la tengo pero es para despues
+
+
         List<Room> compatibles = new List<Room>();
 
         //bucle añadiendo a compatibles todas las que tengan Up false
@@ -409,8 +522,6 @@ public class DungeonManager : MonoBehaviour
 
         return compatibles;
     }
-
-
 
     public List<Room> Filter(Dictionary<Door, DirectionState> dictionaryDirections, List<Room> candidates)
     {
