@@ -67,7 +67,6 @@ public class MainMenu : MonoBehaviour
         SceneManager.LoadScene("Dungeon");
         //Generate dungeon
         CloseMainMenu();
-
     }
 
 }

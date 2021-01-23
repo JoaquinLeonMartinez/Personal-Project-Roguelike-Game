@@ -4,7 +4,6 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
-
 public class DungeonManager : MonoBehaviour
 {
     //Singleton
@@ -28,6 +27,11 @@ public class DungeonManager : MonoBehaviour
         DontDestroyOnLoad(this.gameObject);
     }
 
+    #region OLD_VERSION_ATTRIBUTES
+    int checkedRooms = 0;
+    int ramificaciones = 1;
+    #endregion
+
     //Distancia entre centros de salas
     public static float distance = 4.5f;
     public static float distanceP = 3.25f;
@@ -37,98 +41,24 @@ public class DungeonManager : MonoBehaviour
 
     // Nº de salas
     public int roomsToGenerate = 2;
-    public TMP_InputField roomsToGenerateInput;
+    //public TMP_InputField roomsToGenerateInput;
     public GameObject dungeonContainer;
     //La utilizaremos para ir guardando las roomsque generemos que no sean de tipo P
     public List<GameObject> generatedRooms = new List<GameObject>();
-
-    int checkedRooms = 0;
-
-
-    //New method:
-    int ramificaciones = 1;
-
 
     //backtraking
     public List<Room> grid;
     int sizeX = 4;
     int sizeY = 4;
-    int openDoors = 0;
 
     void Start()
     {
         SetPredefinedRooms();
-
-        //GenerateDungeon();
     }
 
-    private void GenerateDungeon()
+    public void GenerateDungeon()
     {
-        //GenerateDungeonLineal();
-
         GenerateDungeonBacktrackingManager();
-        //TODO:
-        //Arreglar el open doors
-    }
-
-    public bool pruebaBacktracking(int prueba)
-    {
-        Debug.Log($"{prueba}");
-        if (prueba == 0)
-        {
-            Debug.Log("Los backtrackings funcionan");
-            return true;
-        }
-        else
-        {
-            return pruebaBacktracking(prueba - 1);
-        }
-    }
-
-    public void GenerateDungeonLinealImproved()
-    {
-        //generar todo menos las P
-        //para determinar si hay un bloqueo debe encontrar obstaculos en todas sus puertas
-        //si encuentra un bloqueo vuelve a empezar desde otra
-
-        var currentRoom = predefinedRooms[Random.Range(0, predefinedRooms.Count - 1)];
-        currentRoom = Instantiate(currentRoom, new Vector3(0, 0, 0), currentRoom.transform.rotation);
-        currentRoom.transform.parent = dungeonContainer.transform;
-        roomsToGenerate--;
-        bool isClose = false;
-        //Ahora generamos el resto de rooms
-        while (!isClose)
-        {
-
-            for (int j = 0; j < currentRoom.GetComponent<Room>().doors.Count; j++)
-            {
-                if (!isBlockedSimplify(currentRoom, currentRoom.GetComponent<Room>().doors[j]))//si la puerta no esta bloqueada
-                {
-                    List<GameObject> compatibleRooms = GetCompatibleRooms(currentRoom.GetComponent<Room>().doors[j]);
-                    GenerateRoomNormal(currentRoom, compatibleRooms[Random.Range(0, compatibleRooms.Count)], GeneratePosition(currentRoom.transform, currentRoom.GetComponent<Room>().doors[j], distance), j);
-                    //j--; 
-                }
-                else
-                {
-
-                }
-            }
-        }
-
-        if (roomsToGenerate <= 0)
-        {
-            isClose = true;
-        }
-        else if(currentRoom == generatedRooms[generatedRooms.Count - 1])
-        {
-            //bloqueo
-            isClose = true;
-        }
-        else
-        {
-            currentRoom = generatedRooms[generatedRooms.Count - 1];
-        }
-
     }
 
     public void GenerateDungeonBacktrackingManager()
@@ -138,7 +68,7 @@ public class DungeonManager : MonoBehaviour
         PrintGrid();
         Debug.Log($"Generamos mazmorras con rooms to generate = {roomsToGenerate}");
         //Backtracking
-        if (!GenerateDungeonBacktracking(grid, 0, roomsToGenerate, openDoors))
+        if (!GenerateDungeonBacktracking(grid, 0, roomsToGenerate))
         {
             Debug.LogError("No hay solucion");
         }
@@ -207,7 +137,6 @@ public class DungeonManager : MonoBehaviour
         }
         PrintGrid();
     }
-
     public void AdaptGrid()//adaptamos la grid a las rooms que hay por generar
     {
         if(roomsToGenerate > (sizeX * sizeY) / 2)
@@ -217,7 +146,6 @@ public class DungeonManager : MonoBehaviour
             Debug.Log($"Adaptamos la grid, ahora es de tamaño {sizeY*sizeX} posiciones");
         }
     }
-
 
     public void InitGrid()
     {
@@ -229,11 +157,6 @@ public class DungeonManager : MonoBehaviour
     }
 
     public void PrintGrid()
-    {
-        Debug.Log($" {PrintAllGrid()}");
-    }
-
-    public string PrintAllGrid()
     {
         string printedGrid = "Grid: ";
 
@@ -248,10 +171,8 @@ public class DungeonManager : MonoBehaviour
                 printedGrid += " " + grid[i].typeBkg;
             }
         }
-
-        return printedGrid;
+        Debug.Log($" {printedGrid}");
     }
-
 
     public void GridToDungeonExport(List<Room> grid)
     {
@@ -266,7 +187,7 @@ public class DungeonManager : MonoBehaviour
 
         }
     }
-    //(numeroDeCelda%tamañoY , numeroDeZelda/tamañoY)
+    
     public Vector3 GetPositionWorld(int positionGrid)
     {
         return new Vector3((positionGrid / sizeY) * distance, 0, (positionGrid % sizeY) * distance);
@@ -289,22 +210,7 @@ public class DungeonManager : MonoBehaviour
         return target;
     }
 
-    public int GetNumOfOpenDoors()
-    { 
-        //cuenta las conexiones sin cerrar que hay
-        //podriamos hacer un bucle recorriendo toda la grid pero seria algo ineficiente, mejor llevar la cuenta
-        return openDoors;
-    }
-
-    public int UpdateOpenDoors(Room roomToInstantiate, int openDoors)
-    {
-        openDoors += roomToInstantiate.GetOpenDoors(roomToInstantiate.typeBkg);
-
-        return openDoors;
-    }
-
-
-    public bool GenerateDungeonBacktracking(List<Room> grid, int position, int roomsToGenerate, int openDoors)
+    public bool GenerateDungeonBacktracking(List<Room> grid, int position, int roomsToGenerate)
     {
         if (roomsToGenerate <= 0)
         {
@@ -316,14 +222,13 @@ public class DungeonManager : MonoBehaviour
             return false; //hemos llegado al final y esta solucion no era buena
         }
 
-        List<Room> arrayPosiblesOpciones = GetCompatibles(grid, position, openDoors);
+        List<Room> arrayPosiblesOpciones = GetCompatibles(grid, position);
 
         bool isOk = false;
         bool firstTime = true;
         for (int i = 0; i < arrayPosiblesOpciones.Count && !isOk; i++)
         {
             grid[position] = arrayPosiblesOpciones[i];
-            //openDoors = UpdateOpenDoors(arrayPosiblesOpciones[i], openDoors);
             if (isNormalRoomType(arrayPosiblesOpciones[i].typeBkg) && firstTime)
             {
                 roomsToGenerate--;
@@ -331,13 +236,13 @@ public class DungeonManager : MonoBehaviour
             }
             Debug.Log($"Intentamos posicion {position} con {arrayPosiblesOpciones[i].typeBkg}, quedan {roomsToGenerate} rooms por generar");
             PrintGrid();
-            isOk = GenerateDungeonBacktracking(grid, position + 1, roomsToGenerate, openDoors);
+            isOk = GenerateDungeonBacktracking(grid, position + 1, roomsToGenerate);
         }
 
         if (isOk)
         {
             Debug.Log($"La casilla {position} se ha generado con una {grid[position].typeBkg}");
-            //Extra: generar aqui todas las P (de esta room)
+            //Extra: generar aqui todas las P (de esta room) //Ahora mismo lo hace despues del backtracking
             return true;
         }
         else
@@ -359,11 +264,10 @@ public class DungeonManager : MonoBehaviour
         return isValid;
     }
 
-    public List<Room> GetCompatibles(List<Room> grid, int position, int openDoors)
+    public List<Room> GetCompatibles(List<Room> grid, int position)
     {
         List<Room> compatibles = new List<Room>();
         Dictionary<Door, DirectionState> dictionaryDirections = new Dictionary<Door, DirectionState>();
-        //Cosas a tener en cuenta a la hora de chequear:
 
         //Chequear arriba
         dictionaryDirections.Add(Door.Up, CheckDirection(grid, position, Door.Up));
@@ -378,7 +282,7 @@ public class DungeonManager : MonoBehaviour
         if (ValidRoom(position, dictionaryDirections))
         {
             // con lo que devuelven necesitamos obtener una lista de rooms compatibles
-            compatibles = GenerateOptions(dictionaryDirections, openDoors);
+            compatibles = GenerateOptions(dictionaryDirections);
         }
         else
         {
@@ -486,7 +390,7 @@ public class DungeonManager : MonoBehaviour
         return state;
     }
 
-    public List<Room> GenerateOptions(Dictionary<Door, DirectionState> dictionaryDirections, int openDoors)
+    public List<Room> GenerateOptions(Dictionary<Door, DirectionState> dictionaryDirections)
     {
         List<Room> disponibleRooms = new List<Room>();
 
@@ -500,17 +404,16 @@ public class DungeonManager : MonoBehaviour
         disponibleRooms.Add(new Room(RoomTypeBacktracking.H));
         disponibleRooms.Add(new Room(RoomTypeBacktracking.I));
 
-        if (openDoors > 1) // estas rooms solo tienen una entrada, si solo quedase una puerta estariamos provocando un bloqueo
-        {
-            disponibleRooms.Add(new Room(RoomTypeBacktracking.J));
-            disponibleRooms.Add(new Room(RoomTypeBacktracking.K));
-            disponibleRooms.Add(new Room(RoomTypeBacktracking.L));
-            disponibleRooms.Add(new Room(RoomTypeBacktracking.M));
-        }
+        /*
+        //Estas las generaremos al final
+        disponibleRooms.Add(new Room(RoomTypeBacktracking.J));
+        disponibleRooms.Add(new Room(RoomTypeBacktracking.K));
+        disponibleRooms.Add(new Room(RoomTypeBacktracking.L));
+        disponibleRooms.Add(new Room(RoomTypeBacktracking.M));
+         */
 
         disponibleRooms.Add(new Room(RoomTypeBacktracking.N));
         disponibleRooms.Add(new Room(RoomTypeBacktracking.O));
-
 
         List<Room> compatibles = new List<Room>();
 
@@ -554,7 +457,118 @@ public class DungeonManager : MonoBehaviour
         return candidates;
     }
 
-    public void GenerateDungeonLinealImprovedFail() //not working
+    public void SetPredefinedRooms()
+    {
+        foreach (var item in predefinedRooms)
+        {
+            item.GetComponent<Room>().ClearDoors();
+            item.GetComponent<Room>().ClearConnections();
+            item.GetComponent<Room>().SetDoors();
+        }
+    }
+
+    public void ResetDungeon()
+    {
+        foreach (Transform child in dungeonContainer.transform)
+        {
+            GameObject.Destroy(child.gameObject);
+        }
+
+        generatedRooms.Clear();
+    }
+
+    #region OLD_VERSION
+
+    /*public void GenerateDungeonBase()
+    {
+        //La primera sala no puede ser del tipo P, que es el ultimo en el array, de modo que generamos un random hasta el .count - 1
+        //La generamos en el (0,0,0)
+        var currentRoom = predefinedRooms[Random.Range(0, predefinedRooms.Count - 1)];
+        currentRoom = Instantiate(currentRoom, new Vector3(0, 0, 0), currentRoom.transform.rotation);
+        //currentRoom.GetComponent<Room>().SetDoors();
+        roomsToGenerate--;
+        Debug.Log($"Acabamos de generar la primera room (tipo {currentRoom.GetComponent<Room>().type.ToString()})");
+
+        //Ahora generamos el resto de rooms
+        while (roomsToGenerate > 0)
+        {
+            Debug.Log($"Quedan {roomsToGenerate} por generar");
+            // Antes de nada necesitamos saber que salas son compatibles con cada puerta
+            Debug.Log($"La room actual tiene {currentRoom.GetComponent<Room>().doors.Count} puertas");
+
+            for (int j = 0; j < currentRoom.GetComponent<Room>().doors.Count; j++)
+            {
+                if (roomsToGenerate == 0)
+                {
+                    GameObject roomToInstantiate = predefinedRooms[predefinedRooms.Count - 1]; //Si no quedan rooms completamos las aperturas con rooms de tipo P
+                    Instantiate(roomToInstantiate, GeneratePosition(currentRoom.transform, currentRoom.GetComponent<Room>().doors[j], distanceP), roomToInstantiate.transform.rotation);
+                }
+                else
+                {
+                    Debug.Log($"Vamos a buscar rooms compatibles con la puerta {currentRoom.GetComponent<Room>().doors[j].ToString()}");
+                    List<GameObject> compatibleRooms = GetCompatibleRooms(currentRoom.GetComponent<Room>().doors[j]);
+                    //Debug.Log($"Hemos obtenido {compatibleRooms.Count} rooms compatibles.");
+                    if (compatibleRooms.Count != 0) //esto se va a dar siempre realmente
+                    {
+                        //Seleccionamos una de ellas de forma aleatoria
+                        GameObject roomToInstantiate = compatibleRooms[Random.Range(0, compatibleRooms.Count)];
+                        Instantiate(roomToInstantiate, GeneratePosition(currentRoom.transform, currentRoom.GetComponent<Room>().doors[j], distance), roomToInstantiate.transform.rotation);
+                        Debug.Log($"Hemos instanciado una room de tipo {roomToInstantiate.GetComponent<Room>().type.ToString()}");//, con una rotacion de {roomToInstantiate.transform.rotation.x}, {roomToInstantiate.transform.rotation.y}, {roomToInstantiate.transform.rotation.z}");
+                    }
+                }
+                roomsToGenerate--;
+            }
+        }
+    }
+    */
+    /*
+         public void GenerateDungeonLinealImproved()
+    {
+        //generar todo menos las P
+        //para determinar si hay un bloqueo debe encontrar obstaculos en todas sus puertas
+        //si encuentra un bloqueo vuelve a empezar desde otra
+
+        var currentRoom = predefinedRooms[Random.Range(0, predefinedRooms.Count - 1)];
+        currentRoom = Instantiate(currentRoom, new Vector3(0, 0, 0), currentRoom.transform.rotation);
+        currentRoom.transform.parent = dungeonContainer.transform;
+        roomsToGenerate--;
+        bool isClose = false;
+        //Ahora generamos el resto de rooms
+        while (!isClose)
+        {
+
+            for (int j = 0; j < currentRoom.GetComponent<Room>().doors.Count; j++)
+            {
+                if (!isBlockedSimplify(currentRoom, currentRoom.GetComponent<Room>().doors[j]))//si la puerta no esta bloqueada
+                {
+                    List<GameObject> compatibleRooms = GetCompatibleRooms(currentRoom.GetComponent<Room>().doors[j]);
+                    GenerateRoomNormal(currentRoom, compatibleRooms[Random.Range(0, compatibleRooms.Count)], GeneratePosition(currentRoom.transform, currentRoom.GetComponent<Room>().doors[j], distance), j);
+                    //j--; 
+                }
+                else
+                {
+
+                }
+            }
+        }
+
+        if (roomsToGenerate <= 0)
+        {
+            isClose = true;
+        }
+        else if(currentRoom == generatedRooms[generatedRooms.Count - 1])
+        {
+            //bloqueo
+            isClose = true;
+        }
+        else
+        {
+            currentRoom = generatedRooms[generatedRooms.Count - 1];
+        }
+
+    }
+
+        public void GenerateDungeonLinealImprovedFail() //not working
     {
         //La primera sala no puede ser del tipo P, que es el ultimo en el array, de modo que generamos un random hasta el .count - 1
         //La generamos en el (0,0,0)
@@ -675,6 +689,7 @@ public class DungeonManager : MonoBehaviour
         return roomToGenerate;
     }
 
+    
     public GameObject GenerateRoomNormal(GameObject currentRoom, GameObject roomToInstantiate, Vector3 position, int doorPosition)
     {
         var generatedRoom = Instantiate(roomToInstantiate, position, roomToInstantiate.transform.rotation);
@@ -827,59 +842,6 @@ public class DungeonManager : MonoBehaviour
         //Debug.Log($"Sale del bucle con isClose = {isClose} y roomsToGenerate = {roomsToGenerate}");
     }
 
-    public void GenerateDungeonBase()
-    {
-        //La primera sala no puede ser del tipo P, que es el ultimo en el array, de modo que generamos un random hasta el .count - 1
-        //La generamos en el (0,0,0)
-        var currentRoom = predefinedRooms[Random.Range(0, predefinedRooms.Count - 1)];
-        currentRoom = Instantiate(currentRoom, new Vector3(0, 0, 0), currentRoom.transform.rotation);
-        //currentRoom.GetComponent<Room>().SetDoors();
-        roomsToGenerate--;
-        Debug.Log($"Acabamos de generar la primera room (tipo {currentRoom.GetComponent<Room>().type.ToString()})");
-
-        //Ahora generamos el resto de rooms
-        while(roomsToGenerate > 0)
-        {
-            Debug.Log($"Quedan {roomsToGenerate} por generar");
-            // Antes de nada necesitamos saber que salas son compatibles con cada puerta
-            Debug.Log($"La room actual tiene {currentRoom.GetComponent<Room>().doors.Count} puertas");
-
-            for (int j = 0; j < currentRoom.GetComponent<Room>().doors.Count; j++)
-            {
-                if (roomsToGenerate == 0)
-                {
-                    GameObject roomToInstantiate = predefinedRooms[predefinedRooms.Count - 1]; //Si no quedan rooms completamos las aperturas con rooms de tipo P
-                    Instantiate(roomToInstantiate, GeneratePosition(currentRoom.transform, currentRoom.GetComponent<Room>().doors[j], distanceP), roomToInstantiate.transform.rotation);
-                }
-                else
-                {
-                    Debug.Log($"Vamos a buscar rooms compatibles con la puerta {currentRoom.GetComponent<Room>().doors[j].ToString()}");
-                    List<GameObject> compatibleRooms = GetCompatibleRooms(currentRoom.GetComponent<Room>().doors[j]);
-                    //Debug.Log($"Hemos obtenido {compatibleRooms.Count} rooms compatibles.");
-                    if (compatibleRooms.Count != 0) //esto se va a dar siempre realmente
-                    {
-                        //Seleccionamos una de ellas de forma aleatoria
-                        GameObject roomToInstantiate = compatibleRooms[Random.Range(0, compatibleRooms.Count)];
-                        Instantiate(roomToInstantiate, GeneratePosition(currentRoom.transform, currentRoom.GetComponent<Room>().doors[j], distance), roomToInstantiate.transform.rotation);
-                        Debug.Log($"Hemos instanciado una room de tipo {roomToInstantiate.GetComponent<Room>().type.ToString()}");//, con una rotacion de {roomToInstantiate.transform.rotation.x}, {roomToInstantiate.transform.rotation.y}, {roomToInstantiate.transform.rotation.z}");
-                    }
-                }
-                roomsToGenerate--;
-            }
-        }
-    }
-
-    public void OnClickGenerate()
-    {
-        if (!string.IsNullOrEmpty(roomsToGenerateInput.text))
-        {
-            roomsToGenerate = int.Parse(roomsToGenerateInput.text.ToString());
-        }
-
-        ResetDungeon();
-
-        GenerateDungeon();
-    }
 
     //Devolverá una lista de rooms compatibles con una puerta de la room ya creada
     public List<GameObject> GetCompatibleRooms(Door door)
@@ -899,16 +861,7 @@ public class DungeonManager : MonoBehaviour
         return compatibleRooms;
     }
 
-    public void SetPredefinedRooms()
-    {
-        foreach (var item in predefinedRooms)
-        {
-            item.GetComponent<Room>().ClearDoors();
-            item.GetComponent<Room>().ClearConnections();
-            item.GetComponent<Room>().SetDoors();
-        }
-    }
-
+    
     public Vector3 GeneratePosition(Transform parentTransform, Door door, float distance)
     {
         Vector3 position = Vector3.zero;
@@ -923,7 +876,6 @@ public class DungeonManager : MonoBehaviour
             case Door.Up:
                 return new Vector3(parentTransform.position.x - distance, parentTransform.position.y, parentTransform.position.z);
         }
-
 
         return position;
     }
@@ -1030,13 +982,7 @@ public class DungeonManager : MonoBehaviour
         return Physics.Raycast(origin, (target3 - origin).normalized, out hit, maxDistance) || Physics.Raycast(origin, (target2 - origin).normalized, out hit, maxDistance) || Physics.Raycast(origin, (target1 - origin).normalized, out hit, maxDistance);
     }
 
-    public void ResetDungeon()
-    {
-        foreach (Transform child in dungeonContainer.transform)
-        {
-            GameObject.Destroy(child.gameObject);
-        }
+     */
 
-        generatedRooms.Clear();
-    }
+    #endregion
 }
