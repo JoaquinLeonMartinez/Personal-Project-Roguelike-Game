@@ -8,6 +8,7 @@ using UnityEngine;
 public enum DirectionState { open, block, empty };
 public enum RoomType { A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, X };
 public enum Door { Up, Down, Right, Left };
+public enum Rol { None, Entry, Exit};
 
 public class Room : MonoBehaviour
 {
@@ -28,11 +29,18 @@ public class Room : MonoBehaviour
     //Backtraking:
     public RoomType type;
     public Dictionary<Door, bool> doorDictionary = new Dictionary<Door, bool>(); //true es que hay puerta y false es que no hay o ya se esta usando
+    public Rol rol;
 
     public Room(RoomType _type)
     {
         this.type = _type;
         SetupDoors(_type);
+        rol = Rol.None;
+    }
+
+    public void SetRol(Rol _rol)
+    {
+        this.rol = _rol;
     }
 
     private void SetupDoors(RoomType type)
