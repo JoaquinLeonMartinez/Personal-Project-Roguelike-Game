@@ -16,7 +16,16 @@ public class PlayerFollow : MonoBehaviour
         {
             PlayerTransform = GameObject.FindWithTag("Player").transform;
         }
-        _cameraOffset = transform.position - PlayerTransform.position;
+        //_cameraOffset = transform.position - PlayerTransform.position;
+    }
+
+    public void OnInit()
+    {
+        if (PlayerTransform == null)
+        {
+            PlayerTransform = GameObject.FindWithTag("Player").transform;
+        }
+        //_cameraOffset = transform.position - PlayerTransform.position;
     }
 
     // Update is called once per frame

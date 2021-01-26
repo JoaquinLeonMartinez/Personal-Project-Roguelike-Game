@@ -25,12 +25,24 @@ public class GameManager : MonoBehaviour
         DontDestroyOnLoad(this.gameObject);
     }
 
-    public float playerY = 4;
+    public float playerY = 2;
     public int currentStage = 1;
     public GameObject playerPrefab;
     public GameObject player;
-   
+    public bool resetPlayer = false;
+    public GameObject Camera;
 
+    private void FixedUpdate()
+    {
+        if (resetPlayer)
+        {
+            Vector3 entryPosWorld = DungeonManager.Instance.GetEntryPosition();
+            player.transform.position = new Vector3(entryPosWorld.x, entryPosWorld.y + playerY, entryPosWorld.z);
+            player.transform.rotation = playerPrefab.transform.rotation;
+            resetPlayer = false;
+            Debug.LogError("Reset player");
+        }
+    }
     public void GenerateStage(int dungeonSize)
     {
         DungeonManager.Instance.ResetDungeon();
@@ -58,22 +70,14 @@ public class GameManager : MonoBehaviour
         if (player == null)
         {
             player = Instantiate(playerPrefab, new Vector3(entryPosWorld.x, entryPosWorld.y + playerY, entryPosWorld.z), playerPrefab.transform.rotation);
+            PlayerFollow pf = Camera.GetComponent<PlayerFollow>();
+            pf.PlayerTransform = player.transform;
+            pf.OnInit();
+            pf.enabled = true;
         }
         else
         {
-            player.transform.position = new Vector3(entryPosWorld.x, entryPosWorld.y + playerY, entryPosWorld.z);
-            player.transform.rotation = playerPrefab.transform.rotation;
-        }
-
-    }
-
-    public void InitPlayer()
-    {
-        var players = GameObject.FindGameObjectsWithTag("Player");
-        if (players.Length < 1)
-        {
-            players[0].transform.position = new Vector3(0, 0 + playerY, 0);
-            players[0].transform.rotation = playerPrefab.transform.rotation;
+            resetPlayer = true;
         }
 
     }
