@@ -56,6 +56,7 @@ public class UI_DungeonManager : MonoBehaviour
         //Comprobar que se haya generado la muralla
         if (DungeonManager.Instance.generated)
         {
+            GameManager.Instance.state = GameState.InGame;
             //Si se ha generado instanciar al player en la posicion 0 (temporal)
             GameManager.Instance.SetPlayer();
 
@@ -64,6 +65,15 @@ public class UI_DungeonManager : MonoBehaviour
             menuInGame.gameObject.SetActive(true);
             menuInGame.UpdateGameUI();
         }
+    }
+
+    public void OnClickExit()
+    {
+        GameManager.Instance.ExitGame();
+        menuInit.gameObject.SetActive(true);
+        menuInGame.gameObject.SetActive(false);
+
+        
     }
 
 }

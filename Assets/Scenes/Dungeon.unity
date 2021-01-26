@@ -531,6 +531,7 @@ MonoBehaviour:
   player: {fileID: 0}
   resetPlayer: 0
   Camera: {fileID: 1559622389}
+  state: 0
 --- !u!1 &393191115
 GameObject:
   m_ObjectHideFlags: 0
@@ -1519,8 +1520,8 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 341681321}
-        m_MethodName: InitPlayer
+      - m_Target: {fileID: 456707659}
+        m_MethodName: OnClickExit
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -2322,8 +2323,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1704651864}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: -4, z: 0}
-  m_LocalScale: {x: 100, y: 100, z: 100}
+  m_LocalPosition: {x: 24.4, y: -4, z: 38.3}
+  m_LocalScale: {x: 15, y: 15, z: 15}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 5

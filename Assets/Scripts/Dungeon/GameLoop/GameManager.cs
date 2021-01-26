@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+public enum GameState { Menu, InGame};
 public class GameManager : MonoBehaviour
 {
     //Singleton
@@ -31,7 +32,12 @@ public class GameManager : MonoBehaviour
     public GameObject player;
     public bool resetPlayer = false;
     public GameObject Camera;
+    public GameState state;
 
+    public void Start()
+    {
+        state = GameState.Menu;
+    }
     private void FixedUpdate()
     {
         if (resetPlayer)
@@ -80,5 +86,16 @@ public class GameManager : MonoBehaviour
             resetPlayer = true;
         }
 
+    }
+
+    public void ExitGame()
+    {
+        DungeonManager.Instance.ResetDungeon();
+        state = GameState.Menu;
+        //Change camera
+        PlayerFollow pf = Camera.GetComponent<PlayerFollow>();
+        pf.enabled = false;
+        //Destroy player
+        Destroy(player.gameObject);
     }
 }
