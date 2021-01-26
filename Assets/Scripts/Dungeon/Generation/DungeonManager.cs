@@ -525,7 +525,7 @@ public class DungeonManager : MonoBehaviour
     {
         List<Room> disponibleRooms = new List<Room>();
 
-        //disponibleRooms.Add(new Room(RoomTypeBacktracking.A)); // no tengo esta pieza
+        disponibleRooms.Add(new Room(RoomType.A)); // no tengo esta pieza
         disponibleRooms.Add(new Room(RoomType.B));
         disponibleRooms.Add(new Room(RoomType.C));
         disponibleRooms.Add(new Room(RoomType.D));
