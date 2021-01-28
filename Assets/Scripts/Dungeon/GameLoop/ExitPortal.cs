@@ -4,9 +4,10 @@ using UnityEngine;
 
 public class ExitPortal : MonoBehaviour
 {
+    bool enable;
     void Start()
     {
-        
+        enable = true;
     }
 
     void Update()
@@ -20,7 +21,8 @@ public class ExitPortal : MonoBehaviour
         if (other.tag == "Player")
         {
             //Change dungeon
-            GameManager.Instance.OnChangeStage();
+            enable = false;
+            StartCoroutine(GameManager.Instance.OnChangeStage());
         }
     }
 }

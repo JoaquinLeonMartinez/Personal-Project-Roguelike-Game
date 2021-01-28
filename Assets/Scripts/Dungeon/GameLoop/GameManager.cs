@@ -33,6 +33,8 @@ public class GameManager : MonoBehaviour
     public bool resetPlayer = false;
     public GameObject Camera;
     public GameState state;
+    public Animator transitionsAnimator;
+    private float transitionTime = 1f; //parece que no hace mucho caso de este valor
 
     public void Start()
     {
@@ -46,7 +48,6 @@ public class GameManager : MonoBehaviour
             player.transform.position = new Vector3(entryPosWorld.x, entryPosWorld.y + playerY, entryPosWorld.z);
             player.transform.rotation = playerPrefab.transform.rotation;
             resetPlayer = false;
-            Debug.LogError("Reset player");
         }
     }
     public void GenerateStage(int dungeonSize)
@@ -55,10 +56,18 @@ public class GameManager : MonoBehaviour
 
         DungeonManager.Instance.GenerateDungeon(dungeonSize);
     }
-    public void OnChangeStage()
+    public IEnumerator OnChangeStage()
     {
         currentStage++;
         int dungeonSize = DungeonManager.Instance.dungeonSize + 2; //TODO: Esto en un futuro se hara en base a X parametro
+
+        //Start transition
+        transitionsAnimator.SetBool("Start", false);
+
+        StopGame();
+
+        //WAIT //hasta que no esta negro no hacemos nada de teletransporte
+        yield return new WaitForSeconds(transitionTime);
 
         //Borramos la actual y generamos una nueva con el nuevo tamaño
         GenerateStage(dungeonSize);
@@ -68,7 +77,13 @@ public class GameManager : MonoBehaviour
 
         //Actualizamos la UI
         UI_DungeonManager.Instance.menuInGame.UpdateGameUI();
+
+        //end transition
+        transitionsAnimator.SetBool("Start", true);
+
+        ActiveGame();
     }
+
 
     public void SetPlayer()
     {
@@ -97,5 +112,21 @@ public class GameManager : MonoBehaviour
         pf.enabled = false;
         //Destroy player
         Destroy(player.gameObject);
+    }
+
+    public void StopGame()
+    {
+        //Stop player
+        player.GetComponent<PlayerController>().StopPlayer();
+
+        //Stop enemies
+    }
+
+    public void ActiveGame()
+    {
+        //Active player
+        player.GetComponent<PlayerController>().ActivePlayer();
+
+        //Active enemies
     }
 }

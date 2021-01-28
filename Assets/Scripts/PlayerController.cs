@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public enum State { None, Melee1, Melee2, Melee3, Cooldown, Dash };
+public enum State { None, Melee1, Melee2, Melee3, Cooldown, Dash, Stop};
 
 public class PlayerController : MonoBehaviour
 {
@@ -122,20 +122,21 @@ public class PlayerController : MonoBehaviour
 
     void Update()
     {
-        if (playerState == State.None || playerState == State.Cooldown)
+        if (playerState != State.Stop)
         {
-            Movement();
-            DashCheck();
-        }
-        if (playerState != State.Dash)
-        {
-            if (playerState != State.Cooldown)
+            if (playerState == State.None || playerState == State.Cooldown)
             {
-                MeleeAtack();
+                Movement();
+                DashCheck();
             }
-            
+            if (playerState != State.Dash)
+            {
+                if (playerState != State.Cooldown)
+                {
+                    MeleeAtack();
+                }
+            }
         }
-
     }
 
     public void Movement()
@@ -241,12 +242,27 @@ public class PlayerController : MonoBehaviour
         float startTime = Time.time;
         //State lastState = playerState;
         playerState = State.Dash;
-        while (Time.time < startTime + dashDuration)
+        while (Time.time < startTime + dashDuration && playerState != State.Stop)
         {
             controller.Move(this.transform.forward * dashSpeed * Time.deltaTime);
             yield return null;
         }
-        playerState = State.None;
 
+        if (playerState != State.Stop)
+        {
+            playerState = State.None;
+        }
+    }
+
+    public void StopPlayer()
+    {
+        playerState = State.Stop;
+        anim.SetBool("Stop", true);
+    }
+
+    public void ActivePlayer()
+    {
+        playerState = State.None;
+        anim.SetBool("Stop", false);
     }
 }
