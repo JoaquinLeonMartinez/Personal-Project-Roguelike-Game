@@ -6,7 +6,7 @@ using TMPro;
 
 public class DungeonManager : MonoBehaviour
 {
-    //Singleton
+    #region Singleton
     private static DungeonManager instance = null;
     public static DungeonManager Instance
     {
@@ -27,28 +27,32 @@ public class DungeonManager : MonoBehaviour
         DontDestroyOnLoad(this.gameObject);
     }
 
-    #region OLD_VERSION_ATTRIBUTES
-    int checkedRooms = 0;
-    int ramificaciones = 1;
     #endregion
 
-    //Distancia entre centros de salas
+    #region Attributes
+    //Distance between two rooms (center to center)
     public static float distance = 4.5f;
+
+    //Distance between two rooms if one of them is the "end chamber (type P chamber)"
     public static float distanceP = 3.25f;
 
-    // Array de salas predefinidas
+    //Predefined rooms array
     public List<GameObject> predefinedRooms = new List<GameObject>();
-    //Prefabs que necesitaremos
+
+    //Prefab reference
     public GameObject exitPortalPrefab;
 
-    // Nº de salas
+    //Nunmber of rooms to generate
     [System.NonSerialized]
     public int roomsToGenerate = 2;
-    //public TMP_InputField roomsToGenerateInput;
+
+    //GameObject parent
     public GameObject dungeonContainer;
-    //La utilizaremos para ir guardando las roomsque generemos que no sean de tipo P
+
+    //Rooms container (except type P rooms)
     List<GameObject> generatedRooms = new List<GameObject>();
 
+    //2D grid attributes
     public List<Room> grid;
     int sizeX = 4;
     int sizeY = 4;
@@ -58,80 +62,66 @@ public class DungeonManager : MonoBehaviour
     [System.NonSerialized]
     public bool generated = false;
 
+    #endregion
+
+    #region Methods
+
+   /*
+    * This method will be invoked to generate the dungeon according to the given parameters.
+    */
     public void GenerateDungeon(int roomsToGenerate)
     {
         GenerateDungeonFinalManager(roomsToGenerate);
     }
 
+    /*
+     * This method will be in charge of generating the dungeon in 2D and then transferring it to 3D.
+     */
     public void GenerateDungeonFinalManager(int _roomsToGenerate)
     {
         roomsToGenerate = _roomsToGenerate;
         dungeonSize = roomsToGenerate;
         AdaptGrid();
-        InitGrid(); // ponemos toda la grid a X
+        InitGrid();
         PrintGrid();
-        Debug.Log($"Generamos mazmorras con rooms to generate = {roomsToGenerate}");
-        //Backtracking
+        Debug.Log($"Dungeon size = {roomsToGenerate}");
+
+        //"Backtracking"
         if (!GenerateDungeonFinal(grid, roomsToGenerate))
         {
-            Debug.LogError("No hay solucion");
+            Debug.LogError("No solution");
         }
         else
         {
-            //Generar entrada y salida
-            GenerateEntryAndExit(grid); //importante llamar a este antes del close paths
+            //Generate random entry and exit portals
+            GenerateEntryAndExit(grid);
+            //Close all open paths with "P rooms"
             CloseOpenPaths(grid);
+            //Export all dungeon from 2D to 2D world
             GridToDungeonExport(grid);
             generated = true;
         }
     }
 
-    public void GenerateEntryAndExit(List<Room> grid)
-    {
-        bool entryEnc = false;
-        bool exitEnc = false;
-
-        while (!entryEnc || !exitEnc)
-        {
-            int rndPos = Random.Range(0, grid.Count);
-            if (grid[rndPos].type != RoomType.X)
-            {
-                if (!entryEnc)
-                {
-                    grid[rndPos].rol = Rol.Entry;
-                    entryEnc = true;
-                    Debug.Log($"La entrada esta en la posicion {rndPos}");
-                    entryPos = rndPos;
-                }
-                else if (rndPos != entryPos)
-                {
-                    grid[rndPos].rol = Rol.Exit;
-                    exitEnc = true;
-                    Debug.Log($"La salida esta en la posicion {rndPos}");
-                }
-            }
-        }
-    }
-
+    /*
+     * Method for generating the 2D matrix
+     */
     public bool GenerateDungeonFinal(List<Room> grid, int roomsToGenerate)
     {
         for (int i = 0; i < grid.Count && roomsToGenerate > 0; i++)
         {
-            List<Room> arrayPosiblesOpciones = GetCompatibles(grid, i);
+            List<Room> arrayPosiblesOpciones = GetCompatibles(grid, i); //get a list with the compatible rooms
 
             if (arrayPosiblesOpciones.Count > 0)
             {
-                grid[i] = arrayPosiblesOpciones[0]; //nos quedamos con la primera opcion, que es igual de buena que cualquier otra
-                if (isNormalRoomType(grid[i].type))
+                grid[i] = arrayPosiblesOpciones[0]; //We choose the first option
+                if (isNormalRoomType(grid[i].type)) //If is not an end room
                 {
-                    roomsToGenerate--; //si no es de una de las que cierra se resta uno (si no es X)
+                    roomsToGenerate--; 
                 }
             }
 
-            //Debug.Log($"Intentamos posicion {i} con {arrayPosiblesOpciones[0].type}, quedan {roomsToGenerate} rooms por generar");
-            //PrintGrid();
-
-            if (i == grid.Count - 1 && roomsToGenerate > 0) //esto significa que ha llegado al final pero no se ha acabado de generar, por lo que damos otra vuelta
+            if (i == grid.Count - 1 && roomsToGenerate > 0) //If we are at the end of the grid but we still not finish we have to repeat the process
             {
                 i = 0;
             }
@@ -144,47 +134,29 @@ public class DungeonManager : MonoBehaviour
         }
         else
         {
-            Debug.LogError("No se ha podido generar la mazmorra, intentalo otra vez");
+            Debug.LogError("No solution, please try again");
             return false;
         }
     }
 
-
-    public void GenerateDungeonBacktrackingManager()
-    {
-        AdaptGrid();
-        InitGrid(); // ponemos toda la grid a X
-        PrintGrid();
-        Debug.Log($"Generamos mazmorras con rooms to generate = {roomsToGenerate}");
-        //Backtracking
-        if (!GenerateDungeonBacktracking(grid, 0, roomsToGenerate))
-        {
-            Debug.LogError("No hay solucion");
-        }
-        else
-        {
-            CloseOpenPaths(grid);
-            GridToDungeonExport(grid);
-            generated = true;
-        }
-    }
-
+    /*
+     * We have to check all open paths after generate 2D matrix and close them
+     */
     public void CloseOpenPaths(List<Room> grid)
     {
         for (int i = 0; i < grid.Count; i++)
         {
-            if (grid[i].type == RoomType.X) //si es tipo X y tiene alguna puerta abierta se pone
+            if (grid[i].type == RoomType.X)
             {
                 Dictionary<Door, DirectionState> dictionaryDirections = new Dictionary<Door, DirectionState>();
-                //Cosas a tener en cuenta a la hora de chequear:
 
-                //Chequear arriba
+                //Check up
                 dictionaryDirections.Add(Door.Up, CheckDirection(grid, i, Door.Up));
-                //Chequear derecha
+                //Check right
                 dictionaryDirections.Add(Door.Right, CheckDirection(grid, i, Door.Right));
-                //Chequear abajo
+                //Check down
                 dictionaryDirections.Add(Door.Down, CheckDirection(grid, i, Door.Down));
-                //Chequear izquierda
+                //Check left
                 dictionaryDirections.Add(Door.Left, CheckDirection(grid, i, Door.Left));
 
                 if (dictionaryDirections[Door.Left] == DirectionState.open && dictionaryDirections[Door.Up] == DirectionState.open && dictionaryDirections[Door.Down] == DirectionState.open)
@@ -229,48 +201,44 @@ public class DungeonManager : MonoBehaviour
                 }
                 else if (dictionaryDirections[Door.Up] == DirectionState.open)
                 {
-                    //ponemos la J
+                    //J room
                     grid[i] = new Room(RoomType.J);
                 }
                 else if (dictionaryDirections[Door.Right] == DirectionState.open)
                 {
-                    //ponemos la K
+                    //K room
                     grid[i] = new Room(RoomType.K);
                 }
                 else if (dictionaryDirections[Door.Down] == DirectionState.open)
                 {
-                    //ponemos la L
+                    //L room
                     grid[i] = new Room(RoomType.L);
                 }
                 else if (dictionaryDirections[Door.Left] == DirectionState.open)
                 {
-                    //ponemos la M
+                    //M room
                     grid[i] = new Room(RoomType.M);
                 }
             }
         }
         PrintGrid();
     }
-    public void AdaptGrid()//adaptamos la grid a las rooms que hay por generar
+
+    /*
+     * This method is in charge of adjusting the size of the matrix to the most suitable one depending on the size of the dungeon. If it is too big it will lower the efficiency, if it is too small it might not find a solution.
+     */
+    public void AdaptGrid()
     {
         if (roomsToGenerate > (sizeX * sizeY) / 2)
         {
             sizeY = (int)Mathf.Sqrt(roomsToGenerate * 2) + 1;
             sizeX = sizeY;
-            Debug.Log($"Adaptamos la grid, ahora es de tamaño {sizeY * sizeX} posiciones");
         }
     }
 
-    public void AdaptGridFinal()//adaptamos la grid a las rooms que hay por generar
-    {
-        if (roomsToGenerate > (sizeY/2))
-        {
-            sizeY = (roomsToGenerate/2) -1;
-            sizeX = sizeY;
-            Debug.Log($"Adaptamos la grid, ahora es de tamaño {sizeY * sizeX} posiciones");
-        }
-    }
-
+    /*
+     * Set all values to X, X == empty space
+     */
     public void InitGrid()
     {
         grid.Clear();
@@ -280,13 +248,16 @@ public class DungeonManager : MonoBehaviour
         }
     }
 
+    /*
+     * Print method in debug console
+     */
     public void PrintGrid()
     {
         string printedGrid = "Grid: ";
 
         for (int i = 0; i < grid.Count; i++)
         {
-            if (i % sizeY == 0) //esto significa que cambia de fila
+            if (i % sizeY == 0)
             {
                 printedGrid += "\n " + grid[i].type;
             }
@@ -298,6 +269,9 @@ public class DungeonManager : MonoBehaviour
         Debug.Log($" {printedGrid}");
     }
 
+    /*
+     * Exporter of the 2D grid to the 3D world
+     */
     public void GridToDungeonExport(List<Room> grid)
     {
         for (int i = 0; i < grid.Count; i++)
@@ -310,20 +284,25 @@ public class DungeonManager : MonoBehaviour
 
                 if (grid[i].rol == Rol.Exit)
                 {
-                    //instanciar salida
+                    //Intantiate exit portal
                     var gameplayObj = Instantiate(exitPortalPrefab, GetPositionWorld(i), exitPortalPrefab.transform.rotation);
-                    gameplayObj.transform.parent = currentRoom.transform; //lo convertimos en hijo de la pieza en la que se encuentra, de esta forma, al borrar se borrara todo
+                    gameplayObj.transform.parent = currentRoom.transform;
                 }
             }
         }
     }
 
+    /*
+     * Change from position in the theoretical matrix to position in space.
+     */
     public Vector3 GetPositionWorld(int positionGrid)
     {
-        Debug.Log($"valor de sizeY = {sizeY}");
         return new Vector3((positionGrid / sizeY) * distance, 0, (positionGrid % sizeY) * distance);
     }
 
+    /*
+     * Given the room type returns the prefab for that room.
+     */
     public GameObject GetRoomPrefab(RoomType type)
     {
         GameObject target = null;
@@ -341,48 +320,9 @@ public class DungeonManager : MonoBehaviour
         return target;
     }
 
-    public bool GenerateDungeonBacktracking(List<Room> grid, int position, int roomsToGenerate)
-    {
-        if (roomsToGenerate <= 0)
-        {
-            return true; //esto indica que hemos llegado al final y lo hemos petado (en plan bien)
-        }
-
-        if (position >= grid.Count)
-        {
-            return false; //hemos llegado al final y esta solucion no era buena
-        }
-
-        List<Room> arrayPosiblesOpciones = GetCompatibles(grid, position);
-
-        bool isOk = false;
-        bool firstTime = true;
-        for (int i = 0; i < arrayPosiblesOpciones.Count && !isOk; i++)
-        {
-            grid[position] = arrayPosiblesOpciones[i];
-            if (isNormalRoomType(arrayPosiblesOpciones[i].type) && firstTime)
-            {
-                roomsToGenerate--;
-                firstTime = false;
-            }
-            Debug.Log($"Intentamos posicion {position} con {arrayPosiblesOpciones[i].type}, quedan {roomsToGenerate} rooms por generar");
-            PrintGrid();
-            isOk = GenerateDungeonBacktracking(grid, position + 1, roomsToGenerate);
-        }
-
-        if (isOk)
-        {
-            Debug.Log($"La casilla {position} se ha generado con una {grid[position].type}");
-            //Extra: generar aqui todas las P (de esta room) //Ahora mismo lo hace despues del backtracking
-            return true;
-        }
-        else
-        {
-            grid[position].type = RoomType.X;
-            return false;
-        }
-    }
-
+    /*
+     * Check if the indicated type is not a "end room"
+     */
     public bool isNormalRoomType(RoomType type)
     {
         bool isValid = true;
@@ -395,37 +335,39 @@ public class DungeonManager : MonoBehaviour
         return isValid;
     }
 
+    /*
+     * Return a list with compatible rooms in one specific position
+     */
     public List<Room> GetCompatibles(List<Room> grid, int position)
     {
         List<Room> compatibles = new List<Room>();
         Dictionary<Door, DirectionState> dictionaryDirections = new Dictionary<Door, DirectionState>();
 
-        //Chequear arriba
+        //UP
         dictionaryDirections.Add(Door.Up, CheckDirection(grid, position, Door.Up));
-        //Chequear derecha
+        //RIGHT
         dictionaryDirections.Add(Door.Right, CheckDirection(grid, position, Door.Right));
-        //Chequear abajo
+        //DOWN
         dictionaryDirections.Add(Door.Down, CheckDirection(grid, position, Door.Down));
-        //Chequear izquierda
+        //LEFT
         dictionaryDirections.Add(Door.Left, CheckDirection(grid, position, Door.Left));
 
-        //Comprobar si la conexion con room anterior existe (y no es el caso 0), en caso de no tener conexion ni siquiera intenta buscar compatibles, pone X
+        //Check if the connection with previous room exists (and it is not the case 0), in case of not having connection it does not even try to look for compatible (default X value)
         if (ValidRoom(position, dictionaryDirections))
         {
-            // con lo que devuelven necesitamos obtener una lista de rooms compatibles
             compatibles = GenerateOptions(dictionaryDirections);
         }
         else
         {
-            //ponemos una X para que continue
             compatibles.Add(new Room(RoomType.X));
         }
-
-        dictionaryDirections.Clear(); //lo limpiamos por si acaso (no es necesario al ser una variable del propio metodo)
 
         return compatibles;
     }
 
+    /*
+     * Check if it is a valid room
+     */
     public bool ValidRoom(int currentPos, Dictionary<Door, DirectionState> dictionaryDirections)
     {
         if (currentPos == 0)
@@ -441,9 +383,16 @@ public class DungeonManager : MonoBehaviour
         return false; ;
     }
 
+    /*
+     * Check direction in the indicated room
+     */
     public DirectionState CheckDirection(List<Room> grid, int currentPos, Door direction)
     {
-        //Las opciones son 3: que arriba no haya nada (X), que arriba haya algo que bloquee (final del array o room sin puerta), que haya una room con puerta)
+        //There are 3 options:
+        // - There is nothing above (X)
+        // - Something blocking at the top (end of the array or room with no door)
+        // - There is a room with a door
+
         DirectionState state = DirectionState.block;
 
         int posToCheck = 0;
@@ -453,7 +402,7 @@ public class DungeonManager : MonoBehaviour
         switch (direction)
         {
             case Door.Up:
-                //Comprobamos la casilla de arriba, viniendo de abajo
+                //Up direction from down
                 posToCheck = currentPos - sizeY;
                 state = CheckPosition(grid, posToCheck, Door.Down);
                 break;
@@ -462,8 +411,8 @@ public class DungeonManager : MonoBehaviour
                 posToCheck = currentPos + 1;
                 currentRow = currentPos / sizeY;
                 posToCheckRow = posToCheck / sizeY;
-                //Debug.Log($"posToCheck = {posToCheck} == currentPos {currentPos}, pertenecen a las filas {posToCheckRow} == {currentRow}, sizeY == {sizeY}");
-                if (currentRow == posToCheckRow)//esto siginifica que estan en la misma fila, por lo tanto comprobamos el resto de condiciones, sino bloqued
+
+                if (currentRow == posToCheckRow)
                 {
                     state = CheckPosition(grid, posToCheck, Door.Left);
                 }
@@ -482,8 +431,8 @@ public class DungeonManager : MonoBehaviour
                 posToCheck = currentPos - 1;
                 currentRow = currentPos / sizeY;
                 posToCheckRow = posToCheck / sizeY;
-                //Debug.Log($"posToCheck = {posToCheck} == currentPos {currentPos}, pertenecen a las filas {posToCheckRow} == {currentRow}, sizeY == {sizeY}");
-                if (currentRow == posToCheckRow) //esto siginifica que estan en la misma fila, por lo tanto comprobamos el resto de condiciones, sino bloqued
+
+                if (currentRow == posToCheckRow)
                 {
                     state = CheckPosition(grid, posToCheck, Door.Right);
                 }
@@ -493,39 +442,45 @@ public class DungeonManager : MonoBehaviour
                 }
                 break;
         }
-        //Debug.Log($"En pos {currentPos} la direccion {direction} se encuentra en estado {state}");
+
         return state;
     }
 
+    /*
+     * Check position
+     */
     public DirectionState CheckPosition(List<Room> grid, int posToCheck, Door door)
     {
         DirectionState state = DirectionState.block;
 
-        if (posToCheck < 0 || posToCheck >= grid.Count)//con esto comprobamos arriba y abajo
+        if (posToCheck < 0 || posToCheck >= grid.Count)//Check up and down
         {
-            state = DirectionState.block; //no existe la posicion
+            state = DirectionState.block; //out of range
         }
         else if (grid[posToCheck].type == RoomType.X)
         {
-            state = DirectionState.empty; //La room de arriba esta vacia
+            state = DirectionState.empty; //empty space
         }
-        else if (grid[posToCheck].doorDictionary[door]) //TODO, ESTO NO DDEBERIA SER SIEMPRE DOWN
+        else if (grid[posToCheck].doorDictionary[door]) 
         {
-            state = DirectionState.open; //hay una puerta con una puerta abierta, por lo tanto la room que vaya a qui debe tener una puerta abierta
+            state = DirectionState.open; //open room
         }
         else if (!grid[posToCheck].doorDictionary[door])
         {
-            state = DirectionState.block; //hay una sala sin puerta, por lo tanto bloqueada
+            state = DirectionState.block; //block room
         }
 
         return state;
     }
 
+    /*
+     * Generate room options based on the direction of the doors
+     */
     public List<Room> GenerateOptions(Dictionary<Door, DirectionState> dictionaryDirections)
     {
         List<Room> disponibleRooms = new List<Room>();
 
-        disponibleRooms.Add(new Room(RoomType.A)); // no tengo esta pieza
+        disponibleRooms.Add(new Room(RoomType.A)); 
         disponibleRooms.Add(new Room(RoomType.B));
         disponibleRooms.Add(new Room(RoomType.C));
         disponibleRooms.Add(new Room(RoomType.D));
@@ -535,20 +490,11 @@ public class DungeonManager : MonoBehaviour
         disponibleRooms.Add(new Room(RoomType.H));
         disponibleRooms.Add(new Room(RoomType.I));
 
-        /*
-        //Estas las generaremos al final
-        disponibleRooms.Add(new Room(RoomTypeBacktracking.J));
-        disponibleRooms.Add(new Room(RoomTypeBacktracking.K));
-        disponibleRooms.Add(new Room(RoomTypeBacktracking.L));
-        disponibleRooms.Add(new Room(RoomTypeBacktracking.M));
-         */
-
         disponibleRooms.Add(new Room(RoomType.N));
         disponibleRooms.Add(new Room(RoomType.O));
 
         List<Room> compatibles = new List<Room>();
 
-        //bucle añadiendo a compatibles todas las que tengan Up false
         compatibles = Filter(dictionaryDirections, disponibleRooms);
 
         //Randomize list
@@ -557,6 +503,9 @@ public class DungeonManager : MonoBehaviour
         return compatibles;
     }
 
+    /*
+     * Filter compatible rooms after generate opcions
+     */
     public List<Room> Filter(Dictionary<Door, DirectionState> dictionaryDirections, List<Room> candidates)
     {
         for (int i = candidates.Count - 1; i >= 0; i--)
@@ -579,16 +528,12 @@ public class DungeonManager : MonoBehaviour
             }
         }
 
-        /*
-        Debug.Log($"Acabamos de filtrar todas las direcciones, hay {candidates.Count} candidatos");
-        for (int i = 0; i < candidates.Count; i++)
-        {
-            Debug.Log($"Candidato {i}: {candidates[i].type}");
-        }
-        */
         return candidates;
     }
 
+    /*
+     * Destroy generated dungeon
+     */
     public void ResetDungeon()
     {
         foreach (Transform child in dungeonContainer.transform)
@@ -601,11 +546,44 @@ public class DungeonManager : MonoBehaviour
         generatedRooms.Clear();
     }
 
+    /*
+     * Return the position of the player at the begining of each level
+     */
     public Vector3 GetEntryPosition()
     {
-        Debug.Log($"Instanciamos al player en la posicion {entryPos} de la grid ({entryPos/sizeY}, {entryPos%sizeY}), valor de sizeY = {sizeY}");
-
         return GetPositionWorld(entryPos);
     }
 
+    /*
+     * Generator of entry and exit portals in random rooms
+    */
+    public void GenerateEntryAndExit(List<Room> grid)
+    {
+        bool entryEnc = false;
+        bool exitEnc = false;
+
+        while (!entryEnc || !exitEnc)
+        {
+            int rndPos = Random.Range(0, grid.Count);
+            if (grid[rndPos].type != RoomType.X)
+            {
+                if (!entryEnc)
+                {
+                    grid[rndPos].rol = Rol.Entry;
+                    entryEnc = true;
+                    Debug.Log($"Entry position {rndPos}");
+                    entryPos = rndPos;
+                }
+                else if (rndPos != entryPos)
+                {
+                    grid[rndPos].rol = Rol.Exit;
+                    exitEnc = true;
+                    Debug.Log($"Exit position {rndPos}");
+                }
+            }
+        }
+    }
+
+
+    #endregion
 }
